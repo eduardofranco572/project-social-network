@@ -1,33 +1,6 @@
-# Chat: Aplicação de um chata de conversa em tempo real
+# Chat
 
-O 
-
-## ✨ Funcionalidades Principais
-
--   **👤 Gestão de Utilizadores e Autenticação:**
-    -   Sistema seguro de registo e login (utilizando e-mail ou nome de utilizador).
-    -   Perfis de utilizador personalizáveis com foto, banner e links para redes sociais (GitHub, LinkedIn, Instagram e Facebook).
-    -   Perfil listando todos os jogos criados, jams criadas, jams participadas e jogos avaliados.
-    -   Funcionalidade para alteração de senha.
-
--   **:space_invader: Criação e Gestão de Jams:**
-    -   Ferramenta para criar novas jams com título, descrição, datas de início e fim.
-    -   Personalização visual completa da página da jam com `HTML` e `CSS`, incluindo cores, imagens de capa, wallpaper e banner.
-    -   Gestão de jams criadas, com opções para editar e apagar.
-
--   **🎮 Submissão e Visualização de Jogos:**
-    -   Inscrição fácil em jams abertas.
-    -   Upload de jogos para as jams em que o utilizador está inscrito.
-    -   Páginas dedicadas para cada jogo com descrição, conteúdo `HTML` e `CSS` personalizado, e link para jogar.
-    -   Galeria para explorar todos os jogos submetidos na plataforma.
-
--   **❤️ Interação e Comunidade:**
-    -   Sistema de votação ("likes") para os jogos.
-    -   Secção de comentários para feedback.
-    -   Ranking de jogos em cada jam com base nos votos da comunidade.
-
--   **🔔 Notificações em Tempo Real:**
-    -   Notificações instantâneas sobre o início e fim de jams, novos comentários e outras atividades relevantes.
+O Projeto de uma aplicação web de um chat de conversa em tempo real. Realizado para trabalho final das diciplinas de laboratório de banco de dados e de programação web.
 
 ## 🛠️ Tecnologias Utilizadas
 
