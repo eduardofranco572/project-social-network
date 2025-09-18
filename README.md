@@ -30,7 +30,7 @@ Para executar o projeto no seu ambiente local, siga estes passos:
 
 1.  **Clonar o Repositório:**
     ```bash
-    git clone [https://github.com/seu-utilizador/Projeto-POO.git](https://github.com/seu-utilizador/Projeto-POO.git)
+    git clone https://github.com/eduardofranco572/project-chat.git
     cd chat
     ```
 
@@ -45,8 +45,9 @@ Para executar o projeto no seu ambiente local, siga estes passos:
         ```bash
         npm run sync-db
         ```
-      -   para rodar na web a aplicação 
-         ```bash
+      -   para rodar na web a aplicação
+      - 
+        ```bash
         npm run dev
         ```
 
