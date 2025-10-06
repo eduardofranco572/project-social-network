@@ -1,17 +1,17 @@
-# Chat
+# Social Network
 
-O Projeto de uma aplicação web de um chat de conversa em tempo real. Realizado para trabalho final das diciplinas de laboratório de banco de dados e de programação web.
+O Projeto de uma aplicação web de um rede social. Realizado para trabalho final das diciplinas de laboratório de banco de dados e de programação web.
 
 ## 🛠️ Tecnologias Utilizadas
 
 O projeto foi construído com uma stack de tecnologias modernas e robustas, tanto no backend como no frontend.
 
 ### Backend
--   **MySQL** - Para armazenamento e gerenciamento dos dados da aplicação (usuários, mensagens, etc.).
+-   **MySQL** - Para armazenamento e gerenciamento dos dados da aplicação.
 -   **NodeJs** - Como ambiente de execução do lado do servidor, permitindo o uso de JavaScript no backend.
 -   **bcryptjs** - Para a criptografia segura (hashing) de senhas dos usuários no momento do cadastro e login.
 -   **sequelize** - Como ORM (Object-Relational Mapper) para facilitar a interação e manipulação do banco de dados MySQL com código JavaScript.
--   **socket.io** - Para habilitar a comunicação em tempo real (via WebSockets) e a funcionalidade principal do chat.
+-   **socket.io** - Para habilitar a comunicação em tempo real (via WebSockets).
 
 ### Frontend
 -   **ReactJS** - Como biblioteca base para a construção de interfaces de usuário e componentes interativos.
@@ -30,7 +30,7 @@ Para executar o projeto no seu ambiente local, siga estes passos:
 
 1.  **Clonar o Repositório:**
     ```bash
-    git clone https://github.com/eduardofranco572/project-chat.git
+    git clone https://github.com/eduardofranco572/project-social-network.git
     cd chat
     ```
 
