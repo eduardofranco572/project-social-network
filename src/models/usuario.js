@@ -1,3 +1,5 @@
+//exemplo de como criar coluna com sequilize só usar ts devez js
+
 import { DataTypes } from 'sequelize';
 import connection from '../database/database.js';
 
