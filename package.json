@@ -10,17 +10,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/postcss": "^4.1.14",
     "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.2",
+    "embla-carousel-react": "^8.6.0",
     "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.546.0",
     "mysql2": "^3.9.7",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
     "sequelize": "^6.37.7",
     "socket.io": "^4.7.5",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

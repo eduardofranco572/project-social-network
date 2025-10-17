@@ -5,6 +5,12 @@
       "dom.iterable",
       "esnext"
     ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -27,7 +33,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-, "src/models/usuario.js"  ],
+  ],
   "exclude": [
     "node_modules"
   ]
