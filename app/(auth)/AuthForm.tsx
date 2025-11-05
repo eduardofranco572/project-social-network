@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Swal from 'sweetalert2';
+
+import { useAuth } from '@/src/hooks/useAuth';
 
 type AuthMode = 'login' | 'signup';
 
@@ -14,50 +16,51 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [error, setError] = useState('');
-  const router = useRouter();
+  
+  const { signUp, isLoading, error: authError } = useAuth();
+  
+  useEffect(() => {
+    if (authError) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro no Cadastro',
+        text: authError,
+        background: '#1c1c1c',
+        color: '#ffffff'    
+      });
+    }
+  }, [authError]);
 
   const handleLogin = async () => {
-    const response = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha }),
-    });
-
-    if (response.ok) {
-      router.push('/');
-      router.refresh();
-
-    } else {
-      const data = await response.json();
-      setError(data.message || 'Falha no login.');
-    }
+    
   };
 
   const handleSignup = async () => {
-    const response = await fetch('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, senha }),
-    });
+    const success = await signUp({ nome, email, senha });
 
-    if (response.ok) {
-      setMode('login');
-      setError('');
-
-    } else {
-      const data = await response.json();
-      setError(data.message || 'Falha no cadastro.');
+    if (success) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Sucesso!',
+        text: 'Cadastro realizado com sucesso! Faça o login.',
+        background: '#1c1c1c',
+        color: '#ffffff'
+      });
+      
+      setMode('login'); 
+      
+      setNome('');
+      setEmail('');
+      setSenha('');
     }
+
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
     if (mode === 'login') {
       await handleLogin();
-
     } else {
       await handleSignup();
     }
@@ -84,9 +87,9 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className='flex flex-col gap-2'>
+        <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
           {mode === 'signup' && (
-            <div className="mb-4">
+            <div>
               <label htmlFor="nome" className='text-sm'>Nome</label>
 
               <Input
@@ -94,11 +97,12 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
                 onChange={(e) => setNome(e.target.value)}
                 required className="mt-1 h-10 bg-neutral-800 border-neutral-700 focus-visible:ring-0 focus-visible:ring-offset-0"
                 placeholder="Seu nome completo"
+                disabled={isLoading}
               />
             </div>
           )}
 
-          <div className="mb-4">
+          <div>
             <label htmlFor="email" className='text-sm'>Email</label>
 
             <Input
@@ -106,13 +110,13 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
               onChange={(e) => setEmail(e.target.value)}
               required className="mt-1 h-10 bg-neutral-800 border-neutral-700 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder="seuemail@exemplo.com"
+              disabled={isLoading}
             />
           </div>
 
           <div className="mb-6">
             <div className="flex justify-between items-center">
               <label htmlFor="senha" className='text-sm'>Senha</label>
-
               {mode === 'login' && (
                 <Link href="/esqueci-senha" className="text-xs text-neutral-400 hover:underline">
                   Esqueceu a senha?
@@ -125,17 +129,15 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
               onChange={(e) => setSenha(e.target.value)}
               required className="mt-1 h-10 bg-neutral-800 border-neutral-700 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder={mode === 'login' ? "********" : "Crie uma senha forte"}
+              disabled={isLoading}
             />
           </div>
 
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-
-          <Button type="submit" className="btn-auth w-full h-10 bg-white text-black hover:bg-neutral-200">
-            {mode === 'login' ? 'Entrar' : 'Criar Conta'}
+          <Button type="submit" className="btn-auth w-full h-10 bg-white text-black hover:bg-neutral-200" disabled={isLoading}>
+            {isLoading ? 'Carregando...' : (mode === 'login' ? 'Entrar' : 'Criar Conta')}
           </Button>
 
         </form>
-
       </CardContent>
     </Card>
   );

@@ -1,5 +1,7 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../database/database';
+import Sequelize, { type Optional, type Sequelize as SequelizeInstance } from 'sequelize';
+const { DataTypes, Model } = Sequelize;
+
+import getSequelizeInstance from '../database/database';
 
 interface UsuarioAttributes {
     USU_ID: number;
@@ -17,29 +19,36 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
     public USU_NOME!: string;
 }
 
-Usuario.init({
-    USU_ID: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    USU_LOGIN: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    USU_SENHA: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    USU_NOME: {
-        type: DataTypes.STRING,
-        allowNull: false
-    }
-}, {
-    sequelize,
-    tableName: 'TAB_USUARIO',
-    timestamps: false
-});
+export const initUsuarioModel = (sequelize: SequelizeInstance) => {
+  if (sequelize.models.Usuario) {
+    return;
+  }
+
+  Usuario.init({
+      USU_ID: {
+          type: DataTypes.INTEGER,
+          autoIncrement: true,
+          primaryKey: true
+      },
+      USU_LOGIN: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          unique: true
+      },
+      USU_SENHA: {
+          type: DataTypes.STRING,
+          allowNull: false
+      },
+      USU_NOME: {
+          type: DataTypes.STRING,
+          allowNull: false
+      }
+  }, {
+      sequelize,
+      tableName: 'TAB_USUARIO',
+      modelName: 'Usuario',
+      timestamps: false
+  });
+}
 
 export default Usuario;

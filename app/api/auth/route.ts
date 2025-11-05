@@ -2,13 +2,19 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { connect, Usuario } from '@/database/database';
+
+import getSequelizeInstance from '@/src/database/database';
+import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'sua-chave-secreta-deve-ser-longa-e-segura';
 
 export async function POST(req) {
   try {
-    await connect();
+    const sequelize = getSequelizeInstance();
+
+    initUsuarioModel(sequelize);
+    
+    await sequelize.authenticate();
 
     const body = await req.json();
     const { email, senha } = body;

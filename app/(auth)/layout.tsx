@@ -22,6 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <h1 className="text-2xl font-bold text-center">Bem-vindo à nossa Rede Social</h1>
             <p className="text-gray-300 mt-2">Conecte-se e compartilhe momentos.</p>
           </div>
+          
           <div className="flex items-center justify-center flex-col">
             <Carousel setApi={setApi} className="w-full max-w-xs self-center">
               <CarouselContent>
