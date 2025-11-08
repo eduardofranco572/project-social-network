@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; 
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,11 @@ import '@/app/css/profile-editor.css';
 type AuthMode = 'login' | 'signup';
 
 // Componente simples de Avatar
-const Avatar = ({ src, size = 6 }: { src: string | null; size?: number }) => (
+const Avatar = ({ src, size = 80 }: { src: string | null; size?: number }) => (
   <div
     style={{
-      width: `${size}rem`,
-      height: `${size}rem`,
+      width: `${size}px`,
+      height: `${size}px`,
       borderRadius: '50%',
       backgroundColor: '#2a2a2a',
       backgroundImage: src ? `url(${src})` : 'none',
@@ -37,6 +38,7 @@ const Avatar = ({ src, size = 6 }: { src: string | null; size?: number }) => (
   </div>
 );
 
+
 export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [nome, setNome] = useState('');
@@ -49,24 +51,43 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
   const [croppedImagePreview, setCroppedImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { signUp, isLoading, error: authError } = useAuth();
+  const router = useRouter(); 
+  const { signUp, signIn, isLoading, error: authError } = useAuth();
   
   useEffect(() => {
     if (authError) {
       Swal.fire({
         icon: 'error',
-        title: 'Erro no Cadastro',
+        title: (mode === 'login' ? 'Erro no Login' : 'Erro no Cadastro'),
         text: authError,
         background: '#1c1c1c',
         color: '#ffffff'    
       });
     }
-  }, [authError]);
+  }, [authError, mode]);
 
+  // Handler de Login
   const handleLogin = async () => {
-    
+    const success = await signIn({ email, senha });
+
+    if (success) {
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login realizado!',
+        text: 'Redirecionando...',
+        background: '#1c1c1c',
+        color: '#ffffff',
+        timer: 1500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      });
+
+      router.push('/'); 
+      router.refresh();
+    }
   };
 
+  // Handler de Signup
   const handleSignup = async () => {
     const success = await signUp({ nome, email, senha, imagem: croppedImage });
 
@@ -90,6 +111,7 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
     }
   };
 
+  // Handler do Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -105,6 +127,7 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setSelectedImage(URL.createObjectURL(file));
+      e.target.value = '';
     }
   };
 
