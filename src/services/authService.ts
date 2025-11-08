@@ -2,20 +2,22 @@ type SignUpData = {
   nome: string;
   email: string;
   senha: string;
+  imagem: File | null;
 };
 
-/**
- * Função para cadastrar um novo usuário.
- * @param data - Os dados do usuário (nome, email, senha).
- * @returns A resposta da requisição fetch.
- */
 export const signUp = async (data: SignUpData) => {
+  const formData = new FormData();
+  formData.append('nome', data.nome);
+  formData.append('email', data.email);
+  formData.append('senha', data.senha);
+
+  if (data.imagem) {
+    formData.append('imagem', data.imagem);
+  }
+
   const response = await fetch('/api/users', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
+    body: formData,
   });
 
   return response;

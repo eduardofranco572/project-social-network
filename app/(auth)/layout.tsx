@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
-      <div className="flex w-full max-w-4xl h-[600px] bg-[#1c1c1c] rounded-lg shadow-lg overflow-hidden">
+      <div className="flex w-full max-w-4xl bg-[#1c1c1c] rounded-lg shadow-lg overflow-hidden">
         <div className="container-mark hidden md:flex flex-col justify-between w-1/2 text-white">
           <div className="text-left text-center">
             <h1 className="text-2xl font-bold text-center">Bem-vindo à nossa Rede Social</h1>
