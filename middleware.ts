@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rotas que não exigem autenticação
-const publicRoutes = ['/login', '/cadastro', '/api/auth', '/api/users'];
+const publicRoutes = ['/login', '/cadastro', '/api/auth', '/api/users','/api/mongo-test']; // TODO: Remover teste desse local
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -13,6 +13,7 @@ const getSequelizeInstance = () => {
       process.env.DB_PASSWORD || '',
       {
           host: process.env.DB_HOST || 'localhost',
+          port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
           dialect: 'mysql',
           timezone: '-03:00',
           logging: false

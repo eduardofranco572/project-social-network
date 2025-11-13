@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # --- Banco de Dados de Usuários (MySQL) ---
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_social_net
+    # Resolve o conflito: Mapeia a porta 3307 da sua máquina para a 3306 do container
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456789
+      MYSQL_DATABASE: p3
+      MYSQL_USER: p3
+      MYSQL_PASSWORD: 123456789
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # --- Banco de Dados de Posts (MongoDB) ---
+  mongo_db:
+    image: mongo:latest
+    container_name: mongo_social_net
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: p3
+      MONGO_INITDB_ROOT_PASSWORD: 123456789
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  # --- Banco de Dados de Grafos (Neo4j) ---
+  neo4j_db:
+    image: neo4j:5
+    container_name: neo4j_social_net
+    ports:
+      - "7474:7474" # Interface Web
+      - "7687:7687" # Conexão (Bolt)
+    environment:
+      # Define o usuário/senha padrão (neo4j/password)
+      NEO4J_AUTH: p3/123456789
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - app-network
+
+  # --- Fila de Mensagens (RabbitMQ) ---
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_social_net
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: p3
+      RABBITMQ_DEFAULT_PASS: 123456789
+    networks:
+      - app-network
+
+# --- Volumes para persistir os dados ---
+volumes:
+  mysql-data:
+  mongo-data:
+  neo4j-data:
+
+# --- Rede para os containers se comunicarem ---
+networks:
+  app-network:
+    driver: bridge
