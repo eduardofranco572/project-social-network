@@ -1,4 +1,5 @@
 import React from 'react';
+import Sidebar from '@/src/features/menu/Sidebar';
 
 export default function MainLayout({
   children,
@@ -6,8 +7,12 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main>
-      {children}
-    </main>
+    <div className="flex w-full h-screen">
+      <Sidebar />
+
+      <main className="flex-1 flex flex-col overflow-y-auto ml-72">
+        {children}
+      </main>
+    </div>
   );
 }
