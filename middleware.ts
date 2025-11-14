@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Rotas que não exigem autenticação
-const publicRoutes = ['/login', '/cadastro', '/api/auth', '/api/users','/api/mongo-test']; // TODO: Remover teste desse local
+const publicRoutes = ['/login', '/cadastro', '/api/auth', '/api/users','/api/mongo-test'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Pega o token de autenticação do cookie
-  const sessionToken = request.cookies.get('session_token')?.value;
+  const sessionToken = request.cookies.get('auth_token')?.value;
   const isPublicRoute = publicRoutes.some(path => pathname.startsWith(path));
 
   if (!sessionToken && !isPublicRoute) {

@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import AvatarEditor from 'react-avatar-editor';
 import { IoCloseOutline } from "react-icons/io5";
 
+import { Slider } from '@/components/ui/slider';
+
 interface ProfileImageEditorProps {
     image: string;
     onSave: (file: File) => void;
@@ -39,22 +41,23 @@ const ProfileImageEditor: React.FC<ProfileImageEditorProps> = ({ image, onSave, 
                         image={image}
                         width={300} 
                         height={300}
-                        color={[28, 28, 28, 0.6]}
+                        color={[28, 28, 28, 0.6]} 
                         scale={scale}
                         borderRadius={150}
                     />
                 </div>
 
-                <input
-                    type="range"
-                    min="1"
-                    max="2"
-                    step="0.01"
-                    value={scale}
-                    onChange={(e) => setScale(parseFloat(e.target.value))}
-                />
+                <div className="w-full max-w-xs px-4 sliderzoom">
+                    <Slider
+                        min={1}
+                        max={2} 
+                        step={0.01}
+                        value={[scale]}
+                        onValueChange={(value) => setScale(value[0])} 
+                    />
+                </div>
 
-                <button className='brtsaveedimg mt-2' onClick={handleSaveImage}>Salvar imagem</button>
+                <button className='brtsaveedimg mt-4' onClick={handleSaveImage}>Salvar imagem</button>
             </div>
         </section>
     );

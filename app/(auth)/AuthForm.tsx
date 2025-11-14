@@ -38,6 +38,20 @@ const Avatar = ({ src, size = 80 }: { src: string | null; size?: number }) => (
   </div>
 );
 
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  background: '#1c1c1c',
+  color: '#ffffff',  
+  didOpen: (toast) => {
+    toast.onmouseenter = Swal.stopTimer;
+    toast.onmouseleave = Swal.resumeTimer;
+  }
+});
+
 
 export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -56,30 +70,22 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
   
   useEffect(() => {
     if (authError) {
-      Swal.fire({
+      Toast.fire({
         icon: 'error',
         title: (mode === 'login' ? 'Erro no Login' : 'Erro no Cadastro'),
         text: authError,
-        background: '#1c1c1c',
-        color: '#ffffff'    
       });
     }
   }, [authError, mode]);
 
-  // Handler de Login
   const handleLogin = async () => {
     const success = await signIn({ email, senha });
 
     if (success) {
-      await Swal.fire({
+      await Toast.fire({
         icon: 'success',
         title: 'Login realizado!',
         text: 'Redirecionando...',
-        background: '#1c1c1c',
-        color: '#ffffff',
-        timer: 1500,
-        showConfirmButton: false,
-        timerProgressBar: true,
       });
 
       router.push('/'); 
@@ -87,17 +93,14 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
     }
   };
 
-  // Handler de Signup
   const handleSignup = async () => {
     const success = await signUp({ nome, email, senha, imagem: croppedImage });
 
     if (success) {
-      Swal.fire({
+      Toast.fire({
         icon: 'success',
         title: 'Sucesso!',
         text: 'Cadastro realizado com sucesso! Faça o login.',
-        background: '#1c1c1c',
-        color: '#ffffff'
       });
       
       setMode('login'); 
@@ -111,7 +114,6 @@ export default function AuthForm({ initialMode }: { initialMode: AuthMode }) {
     }
   };
 
-  // Handler do Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
