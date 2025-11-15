@@ -3,8 +3,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IoCloseOutline } from "react-icons/io5";
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+
 import {
   Carousel,
   CarouselContent,
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/carousel";
 
 import { HeartOff, MessageCircleOff, UserPlus, MapPin, Send } from 'lucide-react';
+
+import { useCreatePost } from '@/src/features/post/hooks/useCreatePost';
 import '@/app/css/create-post-modal.css';
 
 interface CreatePostModalProps {
@@ -78,15 +80,20 @@ const MainMedia = ({ fileType, fileUrl }: { fileType: string, fileUrl: string })
   );
 };
 
+
 const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => {
-  const [description, setDescription] = useState('');
-  
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi>(); 
   const [thumbApi, setThumbApi] = useState<CarouselApi>();
-
   const [mediaUrls, setMediaUrls] = useState<{ url: string; type: string }[]>([]);
 
+  const { description, setDescription, isLoading, handlePost } = useCreatePost();
+  
+  const [hideLikes, setHideLikes] = useState(false);
+  const [disableComments, setDisableComments] = useState(false);
+
+
+  // Efeitos do Carrossel 
   useEffect(() => {
     const urls = files.map(file => ({
       url: URL.createObjectURL(file),
@@ -94,20 +101,17 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
     }));
 
     setMediaUrls(urls);
-
     return () => {
       urls.forEach(media => URL.revokeObjectURL(media.url));
     };
   }, [files]);
 
-  // Rolar o carrossel ao clicar no thumbnail
   const onThumbClick = useCallback((index: number) => {
     if (!api) return;
     api.scrollTo(index);
 
   }, [api]);
 
-  // Carrossel muda de slide
   const onSelect = useCallback(() => {
     if (!api) return;
 
@@ -118,31 +122,21 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
 
   }, [api, thumbApi]);
 
-
   useEffect(() => {
     if (!api) return;
-    
+
     onSelect();
+
     api.on("select", onSelect);
     api.on("reInit", onSelect);
-    
+
     return () => {
       api.off("select", onSelect);
       api.off("reInit", onSelect);
     };
+
   }, [api, onSelect]);
 
-  const [hideLikes, setHideLikes] = useState(false);
-  const [disableComments, setDisableComments] = useState(false);
-  
-  const handlePost = () => {
-    console.log("Postando Post:", { 
-      files, 
-      description, 
-      options: { hideLikes, disableComments } 
-    });
-    onClose();
-  };
 
   const modalContent = (
     <section className="modal-overlay">
@@ -210,14 +204,17 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
             onChange={(e) => setDescription(e.target.value)}
             className="modal-textarea bg-neutral-800 border-neutral-700"
             rows={5}
+            disabled={isLoading} 
           />
           
           <div className="modal-post-options">
             <h3 className="text-sm font-medium text-neutral-400 mb-2">Opções</h3>
+
             <Button 
               variant="ghost" 
               className="w-full justify-start"
               onClick={() => setHideLikes(!hideLikes)}
+              disabled={isLoading}
             >
               <HeartOff className={`mr-2 ${hideLikes ? 'text-primary' : ''}`} /> 
               Ocultar curtidas
@@ -227,25 +224,34 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
               variant="ghost" 
               className="w-full justify-start"
               onClick={() => setDisableComments(!disableComments)}
+              disabled={isLoading}
             >
               <MessageCircleOff className={`mr-2 ${disableComments ? 'text-primary' : ''}`} /> 
               Desativar comentários
             </Button>
 
-            <Button variant="ghost" className="w-full justify-start text-neutral-500 cursor-not-allowed">
+            <Button variant="ghost" className="w-full justify-start" disabled={isLoading}>
               <UserPlus className="mr-2" /> 
-              Marcar pessoas (Em breve)
+              Marcar pessoas
             </Button>
 
-            <Button variant="ghost" className="w-full justify-start text-neutral-500 cursor-not-allowed">
+            <Button variant="ghost" className="w-full justify-start" disabled={isLoading}>
               <MapPin className="mr-2" /> 
-              Adicionar localização (Em breve)
+              Adicionar localização
             </Button>
           </div>
 
-          <Button className='brtsaveedimg mt-auto' onClick={handlePost}>
-            <Send />
-            Postar
+          <Button 
+            className='brtsaveedimg mt-auto' 
+            onClick={() => handlePost(files, onClose)} 
+            disabled={isLoading}
+          >
+            {isLoading ? 'Postando...' : (
+              <>
+                <Send />
+                Postar
+              </>
+            )}
           </Button>
         </div>
       </div>

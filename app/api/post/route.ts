@@ -3,7 +3,7 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import connectMongo from '@/src/database/mongo';
-import Status from '@/src/models/status';  
+import Post from '@/src/models/post';
 
 interface JwtPayload {
   id: number;
@@ -13,101 +13,89 @@ interface JwtPayload {
 
 async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null> {
     const token = request.cookies.get('auth_token')?.value;
-    if (!token) {
-        return null;
-    }
+    if (!token) return null;
     
     const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        return null;
-    }
+    if (!secret) return null;
 
     try {
-        const decoded = jwt.verify(token, secret) as JwtPayload;
-        return decoded;
+        return jwt.verify(token, secret) as JwtPayload;
     } catch (error) {
-        console.error('Token JWT inválido:', error);
         return null;
     }
 }
 
-// Helper de Upload
+// Helper de Upload 
 async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: string }> {
     const bytes = await media.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Nome de arquivo único
     const filename = `${Date.now()}-${media.name.replace(/\s/g, '_')}`;
-    const publicDir = path.join(process.cwd(), 'public');
-    const uploadsDir = path.join(publicDir, 'uploads');
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     const filepath = path.join(uploadsDir, filename);
-    
-    // URL que o frontend usará
     const publicUrl = `/uploads/${filename}`;
     const mediaType = media.type;
 
     try {
         await writeFile(filepath, buffer);
-
     } catch (error) {
         if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
             try {
                 const fs = require('fs/promises');
-
                 await fs.mkdir(uploadsDir, { recursive: true });
                 await writeFile(filepath, buffer);
-
             } catch (mkdirError) {
                 console.error('Erro ao criar diretório ou salvar:', mkdirError);
-                throw new Error('Falha ao salvar mídia após criar diretório.');
+                throw new Error('Falha ao salvar mídia.');
             }
         } else {
            throw error;
         }
     }
-    
     return { publicUrl, mediaType };
 }
 
-// Rota POST para criar Status
+// Criar um novo Post
 export async function POST(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
-
         if (!user || !user.id) {
-            return NextResponse.json({ message: 'Não autorizado. Faça login para postar.' }, { status: 401 });
+            return NextResponse.json({ message: 'Não autorizado.' }, { status: 401 });
         }
 
         await connectMongo();
 
         const formData = await request.formData();
-        const file = formData.get('file') as File | null;
         const description = formData.get('description') as string | null;
 
-        if (!file) {
-            return NextResponse.json({ message: 'Nenhum arquivo de mídia enviado.' }, { status: 400 });
+        const files = formData.getAll('files') as File[];
+
+        if (!files || files.length === 0) {
+            return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
-        // Salvar o arquivo imagem/vídeo
-        const { publicUrl, mediaType } = await saveMedia(file);
-
-        const newStatus = new Status({
-            mediaUrl: publicUrl,
-            mediaType: mediaType,
+        const savePromises = files.map(file => saveMedia(file));
+        const savedMediaItems = await Promise.all(savePromises);
+        
+        const newPost = new Post({
+            media: savedMediaItems.map(item => ({
+                url: item.publicUrl,
+                type: item.publicUrl.endsWith('.mp4') ? 'video/mp4' : 'image/png'
+            })),
+            
             description: description || '',
             authorId: user.id,
         });
 
-        await newStatus.save();
+        await newPost.save();
 
         return NextResponse.json({
-            message: 'Status postado com sucesso!',
-            status: newStatus
+            message: 'Post criado com sucesso!',
+            post: newPost
         }, { status: 201 });
 
     } catch (error) {
-        console.error('Erro na rota API de status:', error);
+        console.error('Erro na rota API de post:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ message: 'Erro interno ao postar status.', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 });
     }
 }

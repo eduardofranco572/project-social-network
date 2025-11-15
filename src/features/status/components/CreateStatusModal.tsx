@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react'; 
 import { createPortal } from 'react-dom';
 import { IoCloseOutline } from "react-icons/io5";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react'; 
+
+import { useCreateStatus } from '@/src/features/status/hooks/useCreateStatus';
 
 import '@/app/css/create-post-modal.css';
 
@@ -37,14 +39,11 @@ const FilePreview = ({ file }: { file: File }) => {
   );
 };
 
+
 const CreateStatusModal: React.FC<CreateStatusModalProps> = ({ file, onClose }) => {
-  const [description, setDescription] = useState('');
 
-  const handlePost = () => {
-    console.log("Postando Status:", { file, description });
-    onClose();
-  };
-
+  const { description, setDescription, isLoading, handlePost } = useCreateStatus();
+  
   const modalContent = (
     <section className="modal-overlay">
       <div className="modal-content-post modal-content-status">
@@ -64,12 +63,21 @@ const CreateStatusModal: React.FC<CreateStatusModalProps> = ({ file, onClose }) 
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="mt-4 bg-neutral-800 border-neutral-700 h-10"
+          disabled={isLoading} 
         />
         
         <div className="w-full flex justify-end mt-6">
-          <Button className='brtsaveedimg' onClick={handlePost}>
-            <Send />
-            Postar Status
+          <Button 
+            className='brtsaveedimg' 
+            onClick={() => handlePost(file, onClose)} 
+            disabled={isLoading}
+          >
+            {isLoading ? 'Postando...' : (
+              <>
+                <Send />
+                Postar Status
+              </>
+            )}
           </Button>
         </div>
       </div>

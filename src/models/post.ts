@@ -1,0 +1,42 @@
+import mongoose, { Schema, model, models, Model } from 'mongoose';
+
+interface IMediaItem {
+    url: string;  
+    type: string;
+}
+
+interface IPost {
+    media: IMediaItem[];   
+    description?: string;
+    authorId: number;     
+    createdAt: Date;
+    
+    // hideLikes: boolean;
+    // disableComments: boolean;
+}
+
+const PostSchema = new Schema<IPost>({
+    media: [
+        {
+            url: { type: String, required: true },
+            type: { type: String, required: true }
+        }
+    ],
+    description: { 
+        type: String 
+    },
+    authorId: { 
+        type: Number, 
+        required: true 
+    },
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
+    },
+});
+
+PostSchema.index({ authorId: 1, createdAt: -1 });
+
+const Post = (models.Post as Model<IPost>) || model<IPost>('Post', PostSchema);
+
+export default Post;

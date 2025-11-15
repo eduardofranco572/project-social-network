@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import CreateStatusModal from '@/src/features/post/components/CreateStatusModal';
+import CreateStatusModal from '@/src/features/status/components/CreateStatusModal';
 import CreatePostModal from '@/src/features/post/components/CreatePostModal';
 
 export function CreatePostButton() {
