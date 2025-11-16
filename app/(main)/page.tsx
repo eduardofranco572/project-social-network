@@ -1,7 +1,11 @@
+import StatusCarousel from "@/src/features/status/components/StatusCarousel";
+
 export default function HomePage() {
   return (
     <div>
-      <h1>Teste da Página Principal</h1>
+      <StatusCarousel />
+      
+
     </div>
   );
 }

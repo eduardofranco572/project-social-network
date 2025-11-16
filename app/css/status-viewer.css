@@ -1,0 +1,194 @@
+@keyframes fillBar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+.status-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+.status-viewer-content {
+    background-color: #000;
+    border-radius: 0.5rem; 
+    width: 90vw;
+    max-width: 450px;
+    height: 95vh;
+    max-height: 850px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-nav-arrow {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem; 
+    color: white;
+    cursor: pointer;
+    z-index: 51;
+    padding: 0.625rem; 
+    user-select: none;
+    border-radius: 9999px; 
+}
+
+.status-nav-arrow:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.status-nav-arrow.prev {
+    left: 0.625rem; 
+}
+
+.status-nav-arrow.next {
+    right: 0.625rem; 
+}
+
+.status-viewer-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.status-media-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.status-media-item {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.status-click-zone {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    z-index: 5;
+    cursor: pointer;
+}
+
+.status-click-zone.prev {
+    left: 0;
+    width: 50%;
+}
+
+.status-click-zone.next {
+    right: 0;
+    width: 50%;
+}
+
+.status-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.75rem; 
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    z-index: 10;
+}
+
+.status-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.status-author-details {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem; 
+}
+
+.status-author-avatar {
+    width: 2.5rem; 
+    height: 2.5rem; 
+    border-radius: 9999px; 
+    object-fit: cover;
+}
+
+.status-author-name {
+    color: white;
+    font-size: 1rem; 
+    font-weight: 700;
+}
+
+.status-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; 
+}
+
+.status-control-button {
+    background-color: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.25rem; 
+    transition: opacity 0.2s;
+}
+
+.status-control-button:hover {
+    opacity: 0.7;
+}
+
+.status-control-button svg {
+    width: 1.2rem; 
+    height: 1.2rem; 
+}
+
+.status-progress-container {
+    display: flex;
+    gap: 0.25rem; 
+    height: 3px;
+    width: 100%;
+    margin-top: 0.75rem; 
+}
+
+.status-progress-bar {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 9999px; 
+    height: 3px;
+}
+
+.status-progress-fill {
+    height: 100%;
+    background-color: white;
+    border-radius: 9999px; 
+}
+
+.status-description {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.75rem; 
+    padding-bottom: 1.25rem; 
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.status-description p {
+    color: white;
+    font-size: 15px;
+}
