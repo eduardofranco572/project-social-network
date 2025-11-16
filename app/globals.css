@@ -88,4 +88,20 @@ body {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  ::-webkit-scrollbar {
+    @apply w-2; 
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary; 
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground rounded-full; 
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary;
+  }
 }

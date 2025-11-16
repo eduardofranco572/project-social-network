@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { writeFile } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises'; 
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import connectMongo from '@/src/database/mongo';
 import Post from '@/src/models/post';
+import getSequelizeInstance from '@/src/database/database';
+import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 
 interface JwtPayload {
   id: number;
@@ -25,7 +27,6 @@ async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null
     }
 }
 
-// Helper de Upload 
 async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: string }> {
     const bytes = await media.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -33,7 +34,8 @@ async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: s
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
     const filepath = path.join(uploadsDir, filename);
     const publicUrl = `/uploads/${filename}`;
-    const mediaType = media.type;
+    
+    const mediaType = media.type; 
 
     try {
         await writeFile(filepath, buffer);
@@ -54,7 +56,6 @@ async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: s
     return { publicUrl, mediaType };
 }
 
-// Criar um novo Post
 export async function POST(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
         const newPost = new Post({
             media: savedMediaItems.map(item => ({
                 url: item.publicUrl,
-                type: item.publicUrl.endsWith('.mp4') ? 'video/mp4' : 'image/png'
+                type: item.mediaType 
             })),
             
             description: description || '',
@@ -97,5 +98,122 @@ export async function POST(request: NextRequest) {
         console.error('Erro na rota API de post:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         return NextResponse.json({ message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 });
+    }
+}
+
+
+export async function GET(request: NextRequest) {
+    try {
+        const { searchParams } = request.nextUrl;
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '15', 10);
+        const offset = (page - 1) * limit;
+
+        await connectMongo();
+
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .skip(offset)
+            .limit(limit)
+            .lean(); 
+
+        const totalPosts = await Post.countDocuments();
+
+        if (!posts.length) {
+            return NextResponse.json({
+                posts: [],
+                page,
+                hasMore: false,
+            }, { status: 200 });
+        }
+
+        const authorIds = Array.from(new Set(posts.map(post => post.authorId)));
+
+        const sequelize = getSequelizeInstance();
+        initUsuarioModel(sequelize);
+        
+        const authors = await Usuario.findAll({
+            where: {
+                USU_ID: authorIds
+            },
+            attributes: ['USU_ID', 'USU_NOME', 'USU_FOTO_PERFIL']
+        });
+
+        const authorMap = new Map(authors.map(author => [
+            author.USU_ID, 
+            {
+                id: author.USU_ID,
+                nome: author.USU_NOME,
+                fotoPerfil: author.USU_FOTO_PERFIL || '/img/iconePadrao.svg'
+            }
+        ]));
+
+        const populatedPosts = posts.map(post => ({
+            ...post,
+            _id: post._id.toString(),
+            author: authorMap.get(post.authorId) || {
+                id: post.authorId,
+                nome: 'Usuário Desconhecido',
+                fotoPerfil: '/img/iconePadrao.svg'
+            }
+        }));
+
+        return NextResponse.json({
+            posts: populatedPosts,
+            page: page,
+            hasMore: (offset + posts.length) < totalPosts,
+        }, { status: 200 });
+
+    } catch (error) {
+        console.error('Erro ao buscar posts:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ message: 'Erro interno ao buscar posts.', error: errorMessage }, { status: 500 });
+    }
+}
+
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const user = await getUserFromToken(request);
+        if (!user || !user.id) {
+            return NextResponse.json({ message: 'Não autorizado.' }, { status: 401 });
+        }
+
+        const { postId } = await request.json();
+        if (!postId) {
+            return NextResponse.json({ message: 'ID do post é obrigatório.' }, { status: 400 });
+        }
+
+        await connectMongo();
+
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return NextResponse.json({ message: 'Post não encontrado.' }, { status: 404 });
+        }
+
+        if (post.authorId !== user.id) {
+            return NextResponse.json({ message: 'Você não tem permissão para excluir este post.' }, { status: 403 });
+        }
+
+        // Excluir os arquivos de mídia 
+        for (const media of post.media) {
+            try {
+                const filePath = path.join(process.cwd(), 'public', media.url);
+                await unlink(filePath);
+            } catch (fileError) {
+                console.warn(`Falha ao excluir arquivo: ${media.url}`, fileError);
+            }
+        }
+
+        // Excluir o post do banco de dados
+        await Post.findByIdAndDelete(postId);
+
+        return NextResponse.json({ message: 'Post excluído com sucesso' }, { status: 200 });
+
+    } catch (error) {
+        console.error('Erro ao excluir post:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ message: 'Erro interno ao excluir post.', error: errorMessage }, { status: 500 });
     }
 }

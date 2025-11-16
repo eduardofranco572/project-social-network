@@ -10,9 +10,6 @@ interface IPost {
     description?: string;
     authorId: number;     
     createdAt: Date;
-    
-    // hideLikes: boolean;
-    // disableComments: boolean;
 }
 
 const PostSchema = new Schema<IPost>({
