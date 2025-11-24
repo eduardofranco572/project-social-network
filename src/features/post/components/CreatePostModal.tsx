@@ -1,55 +1,36 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
 import { IoCloseOutline } from "react-icons/io5";
 import { Button } from '@/components/ui/button';
-
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-  type CarouselApi,
 } from "@/components/ui/carousel";
-
-import { HeartOff, MessageCircleOff, UserPlus, MapPin, Send } from 'lucide-react';
-
-import { useCreatePost } from '@/src/features/post/hooks/useCreatePost';
+import { HeartOff, MessageCircleOff, UserPlus, MapPin, Send, Loader2 } from 'lucide-react';
+import { useCreatePostModal } from '../hooks/useCreatePostModal';
 import '@/app/css/create-post-modal.css';
 
 interface CreatePostModalProps {
   files: File[];
   onClose: () => void;
-  
 }
 
-interface ThumbnailProps {
-  selected: boolean;
-  onClick: () => void;
-  fileType: string; 
-  fileUrl: string; 
-}
 
-const Thumbnail: React.FC<ThumbnailProps> = ({ selected, onClick, fileType, fileUrl }) => {
+const Thumbnail = ({ selected, onClick, fileType, fileUrl }: any) => {
   const isVideo = fileType.startsWith('video/');
   
   return (
     <div className={`modal-thumbnail ${selected ? 'is-selected' : ''}`}>
       <button onClick={onClick} className="modal-thumbnail-button">
         {isVideo ? (
-          <video
-            src={fileUrl}
-            muted
-            className="modal-thumbnail-media"
-          />
+          <video src={fileUrl} muted className="modal-thumbnail-media" />
         ) : (
-          <img
-            src={fileUrl}
-            alt="Thumbnail"
-            className="modal-thumbnail-media"
-          />
+          <img src={fileUrl} alt="Thumbnail" className="modal-thumbnail-media" />
         )}
       </button>
     </div>
@@ -57,86 +38,30 @@ const Thumbnail: React.FC<ThumbnailProps> = ({ selected, onClick, fileType, file
 };
 
 const MainMedia = ({ fileType, fileUrl }: { fileType: string, fileUrl: string }) => {
-  const isVideo = fileType.startsWith('video/');
-
-  if (isVideo) {
-    return (
-      <video
-        src={fileUrl}
-        controls
-        className="modal-main-media"
-      >
-        Seu navegador não suporta vídeos.
-      </video>
-    );
+  if (fileType.startsWith('video/')) {
+    return <video src={fileUrl} controls className="modal-main-media" >Seu navegador não suporta vídeos.</video>;
   }
 
-  return (
-    <img
-      src={fileUrl}
-      alt="Post media"
-      className="modal-main-media"
-    />
-  );
+  return <img src={fileUrl} alt="Post media" className="modal-main-media" />;
 };
 
-
 const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [api, setApi] = useState<CarouselApi>(); 
-  const [thumbApi, setThumbApi] = useState<CarouselApi>();
-  const [mediaUrls, setMediaUrls] = useState<{ url: string; type: string }[]>([]);
-
-  const { description, setDescription, isLoading, handlePost } = useCreatePost();
   
-  const [hideLikes, setHideLikes] = useState(false);
-  const [disableComments, setDisableComments] = useState(false);
-
-
-  // Efeitos do Carrossel 
-  useEffect(() => {
-    const urls = files.map(file => ({
-      url: URL.createObjectURL(file),
-      type: file.type
-    }));
-
-    setMediaUrls(urls);
-    return () => {
-      urls.forEach(media => URL.revokeObjectURL(media.url));
-    };
-  }, [files]);
-
-  const onThumbClick = useCallback((index: number) => {
-    if (!api) return;
-    api.scrollTo(index);
-
-  }, [api]);
-
-  const onSelect = useCallback(() => {
-    if (!api) return;
-
-    const newSelectedIndex = api.selectedScrollSnap();
-    setSelectedIndex(newSelectedIndex);
-
-    thumbApi?.scrollTo(newSelectedIndex, true); 
-
-  }, [api, thumbApi]);
-
-  useEffect(() => {
-    if (!api) return;
-
-    onSelect();
-
-    api.on("select", onSelect);
-    api.on("reInit", onSelect);
-
-    return () => {
-      api.off("select", onSelect);
-      api.off("reInit", onSelect);
-    };
-
-  }, [api, onSelect]);
-
+  const {
+    mediaUrls,
+    selectedIndex,
+    setApi,
+    setThumbApi,
+    onThumbClick,
+    description,
+    setDescription,
+    isLoading,
+    handleSubmit,
+    hideLikes,
+    setHideLikes,
+    disableComments,
+    setDisableComments
+  } = useCreatePostModal(files, onClose);
 
   const modalContent = (
     <section className="modal-overlay">
@@ -165,12 +90,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
             <div className="modal-thumbnail-container">
               <Carousel
                 setApi={setThumbApi}
-                opts={{
-                  align: "start",
-                  containScroll: "keepSnaps",
-                  dragFree: true,
-                  slidesToScroll: 1,
-                }}
+                opts={{ align: "start", containScroll: "keepSnaps", dragFree: true, slidesToScroll: 1 }}
                 className="w-full"
               >
                 <CarouselContent className="p-1 pl-4">
@@ -188,7 +108,6 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
               </Carousel>
             </div>
           )}
-
         </div>
 
         <div className="modal-post-sidebar">
@@ -231,25 +150,26 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
             </Button>
 
             <Button variant="ghost" className="w-full justify-start" disabled={isLoading}>
-              <UserPlus className="mr-2" /> 
-              Marcar pessoas
+              <UserPlus className="mr-2" /> Marcar pessoas
             </Button>
 
             <Button variant="ghost" className="w-full justify-start" disabled={isLoading}>
-              <MapPin className="mr-2" /> 
-              Adicionar localização
+              <MapPin className="mr-2" /> Adicionar localização
             </Button>
           </div>
 
           <Button 
             className='brtsaveedimg mt-auto' 
-            onClick={() => handlePost(files, onClose)} 
+            onClick={handleSubmit} 
             disabled={isLoading}
           >
-            {isLoading ? 'Postando...' : (
+            {isLoading ? (
+                <>
+                    <Loader2 className="mr-2 animate-spin" /> Postando...
+                </>
+            ) : (
               <>
-                <Send />
-                Postar
+                <Send className="mr-2" /> Postar
               </>
             )}
           </Button>
@@ -258,6 +178,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
     </section>
   );
 
+  if (typeof document === 'undefined') return null;
   return createPortal(modalContent, document.body);
 };
 

@@ -1,0 +1,27 @@
+.insta-carousel {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.insta-carousel .overflow-hidden {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.insta-carousel .flex {
+  height: 100% !important;
+}
+
+.insta-carousel .min-w-0 {
+  height: 100% !important;
+  padding-left: 0 !important;
+  flex: 0 0 100% !important;
+}
+
+.insta-media {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important; 
+  object-position: center !important;
+  display: block !important;
+}

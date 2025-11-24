@@ -6,8 +6,8 @@ import { StatusUserData } from './types';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 
 const StatusSkeleton: React.FC = () => {
-    return (
-        <div className="flex overflow-x-auto p-4 gap-4 border-border scrollbar-hide">
+   return (
+        <div className="flex overflow-x-auto gap-4 scrollbar-hide"> 
             {Array.from({ length: 8 }).map((_, index) => (
                 <div 
                     key={index} 
@@ -69,7 +69,7 @@ const StatusCarousel: React.FC = () => {
 
     return (
         <>
-            <div className="flex overflow-x-auto p-8 gap-4 border-border scrollbar-hide">
+            <div className="flex overflow-x-auto gap-4 border-border scrollbar-hide">
                 {statusUsers.map((userStatus, index) => (
                     <div 
                         key={userStatus.author.id} 

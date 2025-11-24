@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { PostWithAuthor, LoggedInUser } from './types';
 import { 
@@ -9,7 +9,6 @@ import {
     CarouselItem,
     CarouselNext,
     CarouselPrevious,
-    type CarouselApi, 
 } from "@/components/ui/carousel";
 import { 
     DropdownMenu,
@@ -30,10 +29,12 @@ import {
     VolumeX,
     Play 
 } from 'lucide-react';
-import Swal from 'sweetalert2';
 import { cn } from "@/lib/utils"; 
-import { useDeletePost } from '../hooks/useDeletePost'; 
-import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
+
+import { usePostCard } from '../hooks/usePostCard';
+import { usePostMedia } from '../hooks/usePostMedia';
+
+import '@/app/css/post-card.css';
 
 interface PostMediaProps {
     media: PostWithAuthor['media'][0];
@@ -42,60 +43,23 @@ interface PostMediaProps {
     isMuted: boolean;      
 }
 
-const PostMedia: React.FC<PostMediaProps> = ({ 
-    media, 
-    isSlideVisible, 
-    isCardVisible, 
-    isMuted 
-}) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [userPaused, setUserPaused] = useState(false); 
-    const isVideo = media.type.startsWith('video/');
-
-    const isActuallyVisible = isCardVisible && isSlideVisible;
-
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video) return;
-
-        const shouldPlay = isActuallyVisible && !userPaused;
-
-        if (shouldPlay) {
-            video.play().catch(e => {});
-        } else {
-            video.pause();
-        }
-
-        if (!isActuallyVisible) {
-            video.currentTime = 0;
-            setUserPaused(false);
-        }
-
-    }, [isActuallyVisible, userPaused]);
-
-    // Mute
-    useEffect(() => {
-        if (videoRef.current) {
-            videoRef.current.muted = isMuted;
-        }
-    }, [isMuted]);
-
-    // Pausar
-    const handleClick = () => {
-        if (isActuallyVisible) { 
-            setUserPaused(prev => !prev);
-        }
-    };
+const PostMedia: React.FC<PostMediaProps> = (props) => {
+    const { videoRef, userPaused, isVideo, togglePlay } = usePostMedia(
+        props.media, 
+        props.isSlideVisible, 
+        props.isCardVisible, 
+        props.isMuted
+    );
 
     if (isVideo) {
         return (
-            <div className="w-full h-full relative" onClick={handleClick}>
+            <div className="w-full h-full relative" onClick={togglePlay}>
                 <video
                     ref={videoRef}
-                    src={media.url}
+                    src={props.media.url}
                     loop
                     playsInline
-                    className="w-full h-full object-cover" 
+                    className="insta-media"
                 >
                     Seu navegador não suporta vídeos.
                 </video>
@@ -111,9 +75,9 @@ const PostMedia: React.FC<PostMediaProps> = ({
 
     return (
         <img
-            src={media.url}
+            src={props.media.url}
             alt="Mídia do post"
-            className="w-full h-full object-cover" 
+            className="insta-media" 
         />
     );
 };
@@ -122,67 +86,25 @@ interface PostCardProps {
     post: PostWithAuthor;
     loggedInUser: LoggedInUser | null;
     onDeleteSuccess: () => void; 
+    onCommentClick: (post: PostWithAuthor) => void;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess }) => {
-    const [api, setApi] = useState<CarouselApi>();
-    const [current, setCurrent] = useState(0); 
-    const [count, setCount] = useState(0);     
-    
-    const { isDeleting, handleDeletePost } = useDeletePost();
-
-    const cardRef = useRef(null);
-    const isCardVisible = useIntersectionObserver(cardRef, { threshold: 0.5 }); 
-    const [isMuted, setIsMuted] = useState(true);
-
-    const isVideoPost = post.media.some(m => m.type.startsWith('video/'));
-
-    useEffect(() => {
-        if (!api) return;
-    
-        setCount(api.scrollSnapList().length);
-        setCurrent(api.selectedScrollSnap());
-    
-        const onSelect = () => {
-            setCurrent(api.selectedScrollSnap());
-        };
-    
-        api.on("select", onSelect);
-    
-        return () => {
-            api.off("select", onSelect);
-        };
-    }, [api]);
+export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick }) => {
+    const {
+        setApi,
+        current,
+        count,
+        isMuted,
+        setIsMuted,
+        cardRef,
+        isCardVisible,
+        isDeleting,
+        isVideoPost,
+        handleCopyLink,
+        handleDelete
+    } = usePostCard(post, onDeleteSuccess);
 
     const isAuthor = loggedInUser?.id === post.author.id;
-
-    const postUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/p/${post._id}` 
-        : `/p/${post._id}`;
-
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(postUrl);
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Link copiado!',
-            showConfirmButton: false,
-            timer: 2000,
-            background: '#1c1c1c',
-            color: '#ffffff',
-        });
-    };
-    
-    const handleLike = () => console.log('Like');
-    const handleComment = () => console.log('Abrir modal de comentários');
-    const handleSave = () => console.log('Salvar post');
-    const handleReport = () => console.log('Denunciar post');
-    
-    const handleDelete = () => {
-        handleDeletePost(post._id, onDeleteSuccess);
-    };
-
 
     return (
         <article ref={cardRef} className="w-full max-w-md mx-auto bg-background border border-border rounded-lg mb-6">
@@ -195,7 +117,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                 <Link href={`/perfil/${post.author.id}`}>
                     <span className="ml-3 font-semibold text-sm text-foreground">{post.author.nome}</span>
                 </Link>
-
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -212,11 +133,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                         
                         {isVideoPost && (
                             <DropdownMenuItem onSelect={() => setIsMuted(prev => !prev)}>
-                                {isMuted ? (
-                                    <Volume2 className="mr-2" />
-                                ) : (
-                                    <VolumeX className="mr-2" />
-                                )}
+                                {isMuted ? <Volume2 className="mr-2" /> : <VolumeX className="mr-2" />}
                                 {isMuted ? "Ativar Som" : "Silenciar"}
                             </DropdownMenuItem>
                         )}
@@ -235,7 +152,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                         {!isAuthor && (
                             <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive"
-                                onSelect={handleReport}
+                                onSelect={() => console.log('Denunciado')}
                             >
                                 <AlertOctagon className="mr-2" />
                                 Denunciar
@@ -245,12 +162,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                 </DropdownMenu>
             </header>
 
-            <div className="w-full bg-black aspect-[4/5] relative"> 
-                <Carousel setApi={setApi} className="w-full h-full">
-                    <CarouselContent className="h-full">
+            <div className="w-full bg-black aspect-[4/5] relative group overflow-hidden"> 
+                <Carousel setApi={setApi} className="insta-carousel">
+                    <CarouselContent className="-ml-0">
                         {post.media.map((mediaItem, index) => ( 
-                            <CarouselItem key={mediaItem._id} className="h-full">
-                                <div className="w-full h-full flex items-center justify-center">
+                            <CarouselItem key={mediaItem._id} className="pl-0">
+                                <div className="w-full h-full relative">
                                     <PostMedia 
                                         media={mediaItem} 
                                         isSlideVisible={index === current}
@@ -290,7 +207,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost"
                         size="icon" 
-                        onClick={handleLike} 
                         className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
                     >
                         <Heart />
@@ -299,7 +215,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={handleComment} 
+                        onClick={() => onCommentClick(post)}
                         className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
                     >
                         <MessageCircle />
@@ -308,7 +224,6 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={handleSave} 
                         className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
                     >
                         <Bookmark />

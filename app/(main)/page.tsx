@@ -3,10 +3,9 @@ import { PostFeed } from "@/src/features/post/components/PostFeed";
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="w-full max-w-lg">
+    <div className="w-full max-w-[1000px] ml-auto pt-8 px-4 flex justify-center lg:justify-start gap-16">
+      <div className="w-full max-w-[470px] flex flex-col gap-6">
         <StatusCarousel />
-
         <PostFeed />
       </div>
 

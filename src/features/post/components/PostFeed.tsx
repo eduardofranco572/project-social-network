@@ -6,13 +6,14 @@ import { PostCard } from './PostCard';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 import { PostSkeleton } from './PostSkeleton';
 import { PostWithAuthor } from './types';
+import { PostDetailModal } from './PostDetailModal';
 
 export const PostFeed: React.FC = () => {
     const { user: loggedInUser } = useCurrentUser();
-
     const { posts: fetchedPosts, isLoading, hasMore, lastPostElementRef } = usePosts();
-
     const [posts, setPosts] = useState<PostWithAuthor[]>([]);
+    
+    const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
     React.useEffect(() => {
         setPosts(fetchedPosts);
@@ -20,29 +21,22 @@ export const PostFeed: React.FC = () => {
 
     const handleDeleteSuccess = (postId: string) => {
         setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
+        if (selectedPost?._id === postId) setSelectedPost(null); 
     };
 
     return (
         <div className="w-full py-6">
             {posts.map((post, index) => {
-                if (posts.length === index + 1) {
-                    return (
-                        <div ref={lastPostElementRef} key={post._id}>
-                            <PostCard 
-                                post={post} 
-                                loggedInUser={loggedInUser} 
-                                onDeleteSuccess={() => handleDeleteSuccess(post._id)} 
-                            />
-                        </div>
-                    );
-                }
+                const isLast = posts.length === index + 1;
                 return (
-                    <PostCard 
-                        key={post._id} 
-                        post={post} 
-                        loggedInUser={loggedInUser} 
-                        onDeleteSuccess={() => handleDeleteSuccess(post._id)} 
-                    />
+                    <div ref={isLast ? lastPostElementRef : null} key={post._id}>
+                        <PostCard 
+                            post={post} 
+                            loggedInUser={loggedInUser} 
+                            onDeleteSuccess={() => handleDeleteSuccess(post._id)}
+                            onCommentClick={(p) => setSelectedPost(p)}
+                        />
+                    </div>
                 );
             })}
 
@@ -57,6 +51,14 @@ export const PostFeed: React.FC = () => {
                 <p className="text-center text-muted-foreground my-8">
                     Você chegou ao fim.
                 </p>
+            )}
+
+            {selectedPost && (
+                <PostDetailModal 
+                    post={selectedPost}
+                    loggedInUser={loggedInUser}
+                    onClose={() => setSelectedPost(null)}
+                />
             )}
         </div>
     );
