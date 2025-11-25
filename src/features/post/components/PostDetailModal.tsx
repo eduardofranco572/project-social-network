@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, MoreHorizontal, Loader2, Volume2, VolumeX, Play } from 'lucide-react';
 import { PostWithAuthor, LoggedInUser, MediaItem } from './types';
@@ -14,7 +14,7 @@ import {
     CarouselPrevious,
     type CarouselApi 
 } from "@/components/ui/carousel";
-import { usePostDetail } from '../hooks/usePostDetail';
+import { usePostDetail, Comment } from '../hooks/usePostDetail';
 import { usePostMedia } from '../hooks/usePostMedia';
 import '@/app/css/post-detail-modal.css';
 
@@ -27,26 +27,20 @@ interface DetailMediaProps {
 
 const DetailMedia: React.FC<DetailMediaProps> = ({ media, isVisible, isMuted, toggleMute }) => {
     const { videoRef, userPaused, isVideo, togglePlay } = usePostMedia(
-        media, 
-        isVisible, 
-        true, 
-        isMuted
+        media, isVisible, true, isMuted
     );
-
-    const containerClasses = "w-full h-full relative bg-black overflow-hidden";
-    const mediaClasses = "w-full h-full object-contain pointer-events-auto";
 
     if (isVideo) {
         return (
-            <div className={containerClasses} onClick={togglePlay}>
+            <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={togglePlay}>
                 <video
                     ref={videoRef}
                     src={media.url}
                     loop
                     playsInline
-                    className={mediaClasses} 
+                    className="max-h-full w-auto max-w-full object-contain cursor-pointer" 
                 />
-                
+
                 {userPaused && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none z-20">
                         <Play className="h-20 w-20 text-white/90" fill="white" />
@@ -55,7 +49,7 @@ const DetailMedia: React.FC<DetailMediaProps> = ({ media, isVisible, isMuted, to
 
                 <button 
                     onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                    className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors z-20"
+                    className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors z-30"
                 >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
@@ -64,12 +58,83 @@ const DetailMedia: React.FC<DetailMediaProps> = ({ media, isVisible, isMuted, to
     }
 
     return (
-        <div className={containerClasses}>
+        <div className="relative w-full h-full bg-black flex items-center justify-center">
             <img 
                 src={media.url} 
                 alt="Post Content" 
-                className={mediaClasses}
+                className="max-h-full w-auto max-w-full object-contain"
             />
+        </div>
+    );
+};
+
+interface CommentItemProps {
+    comment: Comment;
+    allComments: Comment[];
+    onReply: (comment: Comment) => void;
+}
+
+const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply }) => {
+    const replies = allComments.filter(c => c.parentId === comment._id);
+    const [showReplies, setShowReplies] = useState(false);
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex gap-3 group">
+                <img 
+                    src={comment.user.foto} 
+                    alt={comment.user.nome}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1" 
+                />
+
+                <div className='text-sm flex-1'>
+                    <span className="font-semibold mr-2">{comment.user.nome}</span>
+                    <span>{comment.text}</span>
+                    
+                    <div className='text-xs text-neutral-500 mt-1 flex gap-3 items-center'>
+                        <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
+                        
+                        <button 
+                            className='cursor-pointer font-semibold hover:text-neutral-300'
+                            onClick={() => onReply(comment)}
+                        >
+                            Responder
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {replies.length > 0 && (
+                <div className="reply"> 
+                    {!showReplies ? (
+                        <button 
+                            onClick={() => setShowReplies(true)}
+                            className="text-xs text-neutral-400 flex items-center gap-2 hover:text-white mb-2"
+                        >
+                            <div className="w-6 border-t border-neutral-600"></div>
+                            Ver {replies.length} {replies.length === 1 ? 'resposta' : 'respostas'}
+                        </button>
+                    ) : (
+                        <div className="flex flex-col gap-3 border-l-2 border-neutral-800 pl-3">
+                            {replies.map(reply => (
+                                <CommentItem 
+                                    key={reply._id} 
+                                    comment={reply} 
+                                    allComments={allComments} 
+                                    onReply={onReply} 
+                                />
+                            ))}
+
+                            <button 
+                                onClick={() => setShowReplies(false)}
+                                className="text-xs text-neutral-500 hover:text-white mt-1"
+                            >
+                                Ocultar respostas
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -88,6 +153,8 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
         comments,
         newComment,
         setNewComment,
+        replyingTo,
+        setReplyingTo,
         hasMore,
         isLoadingComments,
         isPosting,
@@ -98,6 +165,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
     const [api, setApi] = useState<CarouselApi>();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -111,7 +179,15 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
         });
     }, [api]);
 
+    useEffect(() => {
+        if (replyingTo && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [replyingTo]);
+
     if (!mounted) return null;
+
+    const rootComments = comments.filter(c => !c.parentId);
 
     const overlayClass = isPage 
         ? 'w-full h-full flex items-center justify-center bg-black' 
@@ -119,7 +195,6 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
 
     const modalContent = (
         <div className={overlayClass} onClick={onClose}>
-            
             <div className="post-detail-close-btn" onClick={onClose}>
                 <X size={24} />
             </div>
@@ -154,6 +229,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                         )}
                     </Carousel>
                 </div>
+                
                 <div className="post-detail-info text-white flex flex-col h-full max-w-[400px] md:max-w-[500px] min-w-[300px] border-l border-neutral-800 bg-[#1c1c1c]">
                     <div className="post-detail-header p-4 border-b border-neutral-800 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -167,8 +243,9 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                                 <span className="font-semibold text-sm hover:opacity-80 cursor-pointer">
                                     {post.author.nome}
                                 </span>
-                                <span className='text-xs text-neutral-500'>•</span>
                                 
+                                <span className='text-xs text-neutral-500'>-</span>
+
                                 <button className='text-blue-500 text-sm font-semibold hover:text-white transition-colors'>
                                     Seguir
                                 </button>
@@ -180,13 +257,12 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
 
                     <div className="post-detail-comments-list scrollbar-hide flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                         {post.description && (
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 mb-2">
                                 <img 
                                     src={post.author.fotoPerfil} 
                                     alt="Autor"
                                     className="w-8 h-8 rounded-full object-cover flex-shrink-0" 
                                 />
-
                                 <div className='text-sm'>
                                     <span className="font-semibold mr-2">{post.author.nome}</span>
                                     <span>{post.description}</span>
@@ -197,23 +273,13 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                             </div>
                         )}
 
-                        {comments.map((comment) => (
-                            <div key={comment._id} className="flex gap-3">
-                                <img 
-                                    src={comment.user.foto} 
-                                    alt={comment.user.nome}
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0" 
-                                />
-
-                                <div className='text-sm'>
-                                    <span className="font-semibold mr-2">{comment.user.nome}</span>
-                                    <span>{comment.text}</span>
-                                    <div className='text-xs text-neutral-500 mt-1 flex gap-3'>
-                                        <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
-                                        <span className='cursor-pointer font-semibold hover:text-neutral-300'>Responder</span>
-                                    </div>
-                                </div>
-                            </div>
+                        {rootComments.map((comment) => (
+                            <CommentItem 
+                                key={comment._id}
+                                comment={comment}
+                                allComments={comments} 
+                                onReply={(c) => setReplyingTo(c)} 
+                            />
                         ))}
 
                         {isLoadingComments && (
@@ -223,10 +289,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                         )}
                         
                         {!isLoadingComments && hasMore && (
-                            <button 
-                                onClick={handleLoadMore}
-                                className="text-center text-xs text-neutral-400 mt-2 p-2 hover:text-white group w-full"
-                            >
+                            <button onClick={handleLoadMore} className="text-center text-xs text-neutral-400 mt-2 p-2 hover:text-white group w-full">
                                 <div className='flex items-center justify-center gap-2'>
                                     <span className='border-t border-neutral-700 flex-1 group-hover:border-neutral-500 transition-colors'></span>
                                     <span className='whitespace-nowrap'>Carregar mais</span>
@@ -237,11 +300,21 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                     </div>
 
                     <div className="post-detail-footer bg-[#1c1c1c] z-10 p-4 border-t border-neutral-800">
+                        {replyingTo && (
+                            <div className="flex justify-between items-center text-xs text-neutral-400 mb-2 bg-neutral-800/50 p-2 rounded">
+                                <span>Respondendo para <span className="font-bold text-white">{replyingTo.user.nome}</span></span>
+                                <button onClick={() => setReplyingTo(null)}>
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                        
                         <form onSubmit={handlePostComment} className="flex items-center gap-2">
                             <Input 
+                                ref={inputRef}
                                 value={newComment}
                                 onChange={e => setNewComment(e.target.value)}
-                                placeholder="Adicione um comentário..." 
+                                placeholder={replyingTo ? `Responder a ${replyingTo.user.nome}...` : "Adicione um comentário..."} 
                                 className="bg-transparent border-none focus-visible:ring-0 p-0 text-sm h-auto placeholder:text-neutral-500"
                                 autoComplete="off"
                             />

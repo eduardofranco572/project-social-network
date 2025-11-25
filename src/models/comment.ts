@@ -4,6 +4,7 @@ interface IComment {
     postId: string;
     userId: number;
     text: string;
+    parentId?: string | null;
     createdAt: Date;
 }
 
@@ -13,14 +14,23 @@ const CommentSchema = new Schema<IComment>({
         required: true,
         index: true
     },
+
     userId: { 
         type: Number, 
         required: true 
     },
+
     text: { 
         type: String, 
         required: true 
     },
+
+    parentId: {
+        type: String,
+        default: null
+    },
+
+
     createdAt: { 
         type: Date, 
         default: Date.now 

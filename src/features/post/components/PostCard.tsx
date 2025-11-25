@@ -87,9 +87,10 @@ interface PostCardProps {
     loggedInUser: LoggedInUser | null;
     onDeleteSuccess: () => void; 
     onCommentClick: (post: PostWithAuthor) => void;
+    isModalOpen: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick, isModalOpen }) => { // [NOVO] Recebendo prop
     const {
         setApi,
         current,
@@ -171,7 +172,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                                     <PostMedia 
                                         media={mediaItem} 
                                         isSlideVisible={index === current}
-                                        isCardVisible={isCardVisible}
+                                        isCardVisible={isCardVisible && !isModalOpen}
                                         isMuted={isMuted}
                                     />
                                 </div>

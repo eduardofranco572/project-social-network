@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
             return {
                 _id: c._id,
                 text: c.text,
+                parentId: c.parentId,
                 createdAt: c.createdAt,
                 user: {
                     id: c.userId,
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
         if (!user) return NextResponse.json({ message: 'Não autorizado' }, { status: 401 });
 
         const body = await request.json();
-        const { postId, text } = body;
+        const { postId, text, parentId } = body;
 
         if (!postId || !text) return NextResponse.json({ message: 'Dados inválidos' }, { status: 400 });
 
@@ -95,7 +96,8 @@ export async function POST(request: NextRequest) {
         const newComment = await Comment.create({
             postId,
             userId: user.id,
-            text
+            text,
+            parentId: parentId || null 
         });
 
         return NextResponse.json(newComment, { status: 201 });

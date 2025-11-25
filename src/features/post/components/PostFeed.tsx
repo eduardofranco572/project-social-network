@@ -9,7 +9,7 @@ import { PostWithAuthor } from './types';
 import { PostDetailModal } from './PostDetailModal';
 
 export const PostFeed: React.FC = () => {
-    const { user: loggedInUser } = useCurrentUser();
+   const { user: loggedInUser } = useCurrentUser();
     const { posts: fetchedPosts, isLoading, hasMore, lastPostElementRef } = usePosts();
     const [posts, setPosts] = useState<PostWithAuthor[]>([]);
     
@@ -30,11 +30,12 @@ export const PostFeed: React.FC = () => {
                 const isLast = posts.length === index + 1;
                 return (
                     <div ref={isLast ? lastPostElementRef : null} key={post._id}>
-                        <PostCard 
+                       <PostCard 
                             post={post} 
                             loggedInUser={loggedInUser} 
                             onDeleteSuccess={() => handleDeleteSuccess(post._id)}
                             onCommentClick={(p) => setSelectedPost(p)}
+                            isModalOpen={!!selectedPost} 
                         />
                     </div>
                 );

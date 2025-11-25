@@ -6,6 +6,7 @@ import { LoggedInUser } from '../components/types';
 export interface Comment {
     _id: string;
     text: string;
+    parentId?: string | null; 
     user: {
         id: number;
         nome: string;
@@ -21,6 +22,7 @@ export const usePostDetail = (
 ) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
+    const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingComments, setIsLoadingComments] = useState(false);
@@ -77,7 +79,11 @@ export const usePostDetail = (
             const res = await fetch('/api/comments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postId, text: newComment })
+                body: JSON.stringify({ 
+                    postId, 
+                    text: newComment,
+                    parentId: replyingTo ? replyingTo._id : null
+                })
             });
 
             if (res.ok) {
@@ -90,8 +96,10 @@ export const usePostDetail = (
                         foto: loggedInUser?.foto || '/img/iconePadrao.svg'
                     }
                 };
-                setComments(prev => [commentWithUser, ...prev]);
+
+                setComments(prev => [commentWithUser, ...prev]); 
                 setNewComment('');
+                setReplyingTo(null); 
             }
         } catch (error) {
             console.error("Erro ao comentar:", error);
@@ -104,6 +112,8 @@ export const usePostDetail = (
         comments,
         newComment,
         setNewComment,
+        replyingTo,     
+        setReplyingTo,  
         hasMore,
         isLoadingComments,
         isPosting,
