@@ -39,20 +39,24 @@ async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: s
 
     try {
         await writeFile(filepath, buffer);
+
     } catch (error) {
         if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
             try {
                 const fs = require('fs/promises');
                 await fs.mkdir(uploadsDir, { recursive: true });
                 await writeFile(filepath, buffer);
+
             } catch (mkdirError) {
                 console.error('Erro ao criar diretório ou salvar:', mkdirError);
                 throw new Error('Falha ao salvar mídia.');
             }
+
         } else {
            throw error;
         }
     }
+
     return { publicUrl, mediaType };
 }
 
@@ -105,19 +109,23 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = request.nextUrl;
+        const userId = searchParams.get('userId');
+
         const page = parseInt(searchParams.get('page') || '1', 10);
         const limit = parseInt(searchParams.get('limit') || '15', 10);
         const offset = (page - 1) * limit;
 
+        const query = userId ? { authorId: parseInt(userId) } : {};
+
         await connectMongo();
 
-        const posts = await Post.find()
+        const posts = await Post.find(query)
             .sort({ createdAt: -1 })
             .skip(offset)
             .limit(limit)
             .lean(); 
 
-        const totalPosts = await Post.countDocuments();
+        const totalPosts = await Post.countDocuments(query);
 
         if (!posts.length) {
             return NextResponse.json({

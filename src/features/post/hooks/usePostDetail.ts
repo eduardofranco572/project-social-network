@@ -108,6 +108,22 @@ export const usePostDetail = (
         }
     };
 
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            const res = await fetch('/api/comments', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commentId })
+            });
+
+            if (res.ok) {
+                setComments(prev => prev.filter(c => c._id !== commentId && c.parentId !== commentId));
+            }
+        } catch (error) {
+            console.error("Erro ao excluir comentário:", error);
+        }
+    };
+
     return {
         comments,
         newComment,
@@ -118,6 +134,7 @@ export const usePostDetail = (
         isLoadingComments,
         isPosting,
         handleLoadMore,
-        handlePostComment
+        handlePostComment,
+        handleDeleteComment
     };
 };

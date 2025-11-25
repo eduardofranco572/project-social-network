@@ -6,6 +6,8 @@ import { useCurrentUser } from "@/src/hooks/useCurrentUser";
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 
+import Link from "next/link";
+
 const UserAvatar = ({ src }: { src?: string | null }) => (
   <div className="size-10 rounded-full bg-secondary overflow-hidden flex-shrink-0">
     {src ? (
@@ -74,7 +76,11 @@ export function ProfileFooter() {
   return (
     <footer className="mt-auto p-4 border-t">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+
+        <Link 
+          href={`/perfil/${usuario.id}`} 
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+        >
           <UserAvatar src={usuario.foto} />
 
           <div className="flex flex-col">
@@ -83,7 +89,7 @@ export function ProfileFooter() {
               Online
             </span>
           </div>
-        </div>
+        </Link>
 
         <Button variant="ghost" size="icon" onClick={() => console.log('Abrir Configurações')} title="Configurações">
           <Settings className="size-5" />

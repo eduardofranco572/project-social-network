@@ -106,3 +106,37 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Erro ao comentar' }, { status: 500 });
     }
 }
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const user = await getUserFromToken(request);
+        if (!user) return NextResponse.json({ message: 'Não autorizado' }, { status: 401 });
+
+        const { commentId } = await request.json();
+
+        if (!commentId) return NextResponse.json({ message: 'ID do comentário obrigatório' }, { status: 400 });
+
+        await connectMongo();
+
+        const comment = await Comment.findById(commentId);
+
+        if (!comment) {
+            return NextResponse.json({ message: 'Comentário não encontrado' }, { status: 404 });
+        }
+
+        // Verifica se é o dono do comentario
+        if (comment.userId !== user.id) {
+            return NextResponse.json({ message: 'Sem permissão para excluir' }, { status: 403 });
+        }
+
+        await Comment.findByIdAndDelete(commentId);
+
+        // Excluir respostas alinhadas
+        await Comment.deleteMany({ parentId: commentId });
+
+        return NextResponse.json({ message: 'Comentário excluído' }, { status: 200 });
+
+    } catch (error) {
+        return NextResponse.json({ message: 'Erro ao excluir comentário' }, { status: 500 });
+    }
+}

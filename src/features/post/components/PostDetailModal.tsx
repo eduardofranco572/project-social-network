@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MoreHorizontal, Loader2, Volume2, VolumeX, Play } from 'lucide-react';
+import { X, MoreHorizontal, Loader2, Volume2, VolumeX, Play, Trash2 } from 'lucide-react';
 import { PostWithAuthor, LoggedInUser, MediaItem } from './types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -72,11 +72,15 @@ interface CommentItemProps {
     comment: Comment;
     allComments: Comment[];
     onReply: (comment: Comment) => void;
+    onDelete: (commentId: string) => void; 
+    currentUserId?: number;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply }) => {
+const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply, onDelete, currentUserId }) => {
     const replies = allComments.filter(c => c.parentId === comment._id);
     const [showReplies, setShowReplies] = useState(false);
+
+    const isAuthor = currentUserId === comment.user.id;
 
     return (
         <div className="flex flex-col gap-2">
@@ -87,13 +91,26 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1" 
                 />
 
-                <div className='text-sm flex-1'>
-                    <span className="font-semibold mr-2">{comment.user.nome}</span>
-                    <span>{comment.text}</span>
+                <div className='text-sm flex-1 min-w-0'>
+                    <div className="flex justify-between items-start">
+                        <div className="break-words pr-2">
+                            <span className="font-semibold mr-2">{comment.user.nome}</span>
+                            <span>{comment.text}</span>
+                        </div>
+                        
+                        {isAuthor && (
+                            <button 
+                                onClick={() => onDelete(comment._id)}
+                                className="text-neutral-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Excluir comentário"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        )}
+                    </div>
                     
                     <div className='text-xs text-neutral-500 mt-1 flex gap-3 items-center'>
                         <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
-                        
                         <button 
                             className='cursor-pointer font-semibold hover:text-neutral-300'
                             onClick={() => onReply(comment)}
@@ -121,7 +138,9 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply
                                     key={reply._id} 
                                     comment={reply} 
                                     allComments={allComments} 
-                                    onReply={onReply} 
+                                    onReply={onReply}
+                                    onDelete={onDelete}
+                                    currentUserId={currentUserId}
                                 />
                             ))}
 
@@ -159,7 +178,8 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
         isLoadingComments,
         isPosting,
         handleLoadMore,
-        handlePostComment
+        handlePostComment,
+        handleDeleteComment
     } = usePostDetail(post._id, loggedInUser, isPage);
 
     const [api, setApi] = useState<CarouselApi>();
@@ -279,6 +299,8 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                                 comment={comment}
                                 allComments={comments} 
                                 onReply={(c) => setReplyingTo(c)} 
+                                onDelete={handleDeleteComment} 
+                                currentUserId={loggedInUser?.id}
                             />
                         ))}
 

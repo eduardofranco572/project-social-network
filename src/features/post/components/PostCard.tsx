@@ -110,13 +110,18 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
     return (
         <article ref={cardRef} className="w-full max-w-md mx-auto bg-background border border-border rounded-lg mb-6">
             <header className="flex items-center p-2">
-                <img 
-                    src={post.author.fotoPerfil} 
-                    alt={post.author.nome} 
-                    className="w-10 h-10 rounded-full object-cover border border-neutral-700"
-                />
                 <Link href={`/perfil/${post.author.id}`}>
-                    <span className="ml-3 font-semibold text-sm text-foreground">{post.author.nome}</span>
+                    <img 
+                        src={post.author.fotoPerfil} 
+                        alt={post.author.nome} 
+                        className="w-10 h-10 rounded-full object-cover border border-neutral-700 cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                </Link>
+
+                <Link href={`/perfil/${post.author.id}`}>
+                    <span className="ml-3 font-semibold text-sm text-foreground hover:underline cursor-pointer">
+                        {post.author.nome}
+                    </span>
                 </Link>
 
                 <DropdownMenu>
