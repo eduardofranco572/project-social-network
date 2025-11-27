@@ -22,6 +22,7 @@ export interface PostWithAuthor {
     media: MediaItem[];
     description?: string;
     authorId: number;
+    likes: number[];
     createdAt: string;
     author: PostAuthor;
 }

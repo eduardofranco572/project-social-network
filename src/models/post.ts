@@ -8,7 +8,8 @@ interface IMediaItem {
 interface IPost {
     media: IMediaItem[];   
     description?: string;
-    authorId: number;     
+    authorId: number;
+    likes: number[];     
     createdAt: Date;
 }
 
@@ -25,6 +26,10 @@ const PostSchema = new Schema<IPost>({
     authorId: { 
         type: Number, 
         required: true 
+    },
+    likes: {
+        type: [Number],
+        default: []
     },
     createdAt: { 
         type: Date, 

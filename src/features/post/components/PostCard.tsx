@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 
 import { usePostCard } from '../hooks/usePostCard';
 import { usePostMedia } from '../hooks/usePostMedia';
+import { useLike } from '../hooks/useLike';
 
 import '@/app/css/post-card.css';
 
@@ -90,7 +91,7 @@ interface PostCardProps {
     isModalOpen: boolean;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick, isModalOpen }) => { // [NOVO] Recebendo prop
+export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick, isModalOpen }) => { 
     const {
         setApi,
         current,
@@ -104,6 +105,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
         handleCopyLink,
         handleDelete
     } = usePostCard(post, onDeleteSuccess);
+
+    const { isLiked, likesCount, formattedLikes, toggleLike } = useLike(
+        post._id, 
+        post.likes || [],
+        loggedInUser?.id
+    );
 
     const isAuthor = loggedInUser?.id === post.author.id;
 
@@ -213,16 +220,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost"
                         size="icon" 
-                        className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
+                        onClick={toggleLike}
+                        className={cn(
+                            "h-10 w-10 [&_svg]:size-6 transition-colors",
+                            isLiked ? "text-red-500 hover:text-red-600" : "text-foreground hover:text-muted-foreground"
+                        )}
                     >
-                        <Heart />
+                        <Heart 
+                            className={cn("transition-all duration-300", isLiked && "fill-current scale-110")} 
+                        />
                     </Button>
+
+                    {likesCount > 0 && (
+                        <span className="text-sm font-semibold min-w-[20px]">
+                            {formattedLikes}
+                        </span>
+                    )}
                     
                     <Button 
                         variant="ghost" 
                         size="icon"
                         onClick={() => onCommentClick(post)}
-                        className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
+                        className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-6"
                     >
                         <MessageCircle />
                     </Button>
@@ -230,7 +249,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost" 
                         size="icon"
-                        className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-5"
+                        className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-6 ml-auto"
                     >
                         <Bookmark />
                     </Button>

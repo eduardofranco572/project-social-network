@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
         const populatedPosts = posts.map(post => ({
             ...post,
             _id: post._id.toString(),
+            likes: (post.likes || []).map((id: any) => parseInt(id, 10)),
             author: authorMap.get(post.authorId) || {
                 id: post.authorId,
                 nome: 'Usuário Desconhecido',
