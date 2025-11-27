@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { X, MoreHorizontal, Loader2 } from 'lucide-react';
+import { X, MoreHorizontal, Loader2, Heart, Bookmark, Smile } from 'lucide-react';
 import { PostWithAuthor, LoggedInUser } from './types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,13 @@ import {
 import { usePostDetail } from '../hooks/usePostDetail';
 import '@/app/css/post-detail-modal.css';
 import { useFollow } from '@/src/hooks/useFollow';
+import { useLike } from '../hooks/useLike';
+import { cn } from "@/lib/utils";
 
 import { DetailMedia } from './PostDetail/DetailMedia';
 import { CommentItem } from './PostDetail/CommentItem';
+
+import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
 
 interface PostDetailModalProps {
     post: PostWithAuthor;
@@ -46,6 +50,12 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
         handleDeleteComment
     } = usePostDetail(post._id, loggedInUser, isPage);
 
+    const { isLiked, likesCount, formattedLikes, toggleLike } = useLike(
+        post._id, 
+        post.likes || [], 
+        loggedInUser?.id
+    );
+
     const [api, setApi] = useState<CarouselApi>();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
@@ -53,6 +63,8 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
 
     const { isFollowing, toggleFollow, isLoading: isFollowLoading } = useFollow(post.author.id);
     const isOwnPost = loggedInUser?.id === post.author.id;
+
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -79,6 +91,12 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
     const overlayClass = isPage 
         ? 'w-full h-full flex items-center justify-center bg-black' 
         : 'post-detail-overlay';
+
+
+    const onEmojiClick = (emojiObject: any) => {
+        setNewComment((prev) => prev + emojiObject.emoji);
+        setShowEmojiPicker(false); 
+    };    
 
     const modalContent = (
         <div className={overlayClass} onClick={onClose}>
@@ -202,7 +220,41 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                         )}
                     </div>
 
-                    <div className="post-detail-footer bg-[#1c1c1c] z-10 p-4 border-t border-neutral-800">
+                    <div className="post-detail-footer bg-[#1c1c1c] z-10 p-4 border-t border-neutral-800 relative">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4">
+                                <div className='flex items-center'>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={toggleLike}
+                                        className="h-9 w-9 hover:bg-transparent p-0 [&_svg]:size-6"
+                                    >
+                                        <Heart 
+                                            className={cn(
+                                                "transition-colors", 
+                                                isLiked ? "fill-red-500 text-red-500" : "text-white hover:text-neutral-300"
+                                            )} 
+                                        />
+                                    </Button>
+
+                                    {likesCount > 0 && (
+                                        <span className="text-sm font-semibold text-white">
+                                            {formattedLikes}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 hover:bg-transparent p-0 text-white hover:text-neutral-300"
+                            >
+                                <Bookmark className="w-6 h-6" />
+                            </Button>
+                        </div>
+
                         {replyingTo && (
                             <div className="flex justify-between items-center text-xs text-neutral-400 mb-2 bg-neutral-800/50 p-2 rounded">
                                 <span>Respondendo para <span className="font-bold text-white">{replyingTo.user.nome}</span></span>
@@ -211,12 +263,36 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                                 </button>
                             </div>
                         )}
+
+                        {showEmojiPicker && (
+                            <div className="absolute bottom-16 left-4 z-50">
+                                <EmojiPicker 
+                                    theme={Theme.DARK} 
+                                    emojiStyle={EmojiStyle.APPLE}
+                                    onEmojiClick={onEmojiClick}
+                                    width={300}
+                                    height={400}
+                                    lazyLoadEmojis={true}
+                                />
+                            </div>
+                        )}
                         
                         <form onSubmit={handlePostComment} className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="text-white hover:text-neutral-300 h-8 w-8 p-0"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                            >
+                                <Smile size={24} />
+                            </Button>
+
                             <Input 
                                 ref={inputRef}
                                 value={newComment}
                                 onChange={e => setNewComment(e.target.value)}
+                                onFocus={() => setShowEmojiPicker(false)} 
                                 placeholder={replyingTo ? `Responder a ${replyingTo.user.nome}...` : "Adicione um comentário..."} 
                                 className="bg-transparent border-none focus-visible:ring-0 p-0 text-sm h-auto placeholder:text-neutral-500"
                                 autoComplete="off"
