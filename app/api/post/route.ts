@@ -6,6 +6,7 @@ import connectMongo from '@/src/database/mongo';
 import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
+import { getNeo4jDriver } from '@/src/database/neo4j';
 
 interface JwtPayload {
   id: number;
@@ -109,13 +110,58 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = request.nextUrl;
-        const userId = searchParams.get('userId');
+        const targetUserId = searchParams.get('userId');
 
         const page = parseInt(searchParams.get('page') || '1', 10);
         const limit = parseInt(searchParams.get('limit') || '15', 10);
         const offset = (page - 1) * limit;
 
-        const query = userId ? { authorId: parseInt(userId) } : {};
+        let query = {};
+
+        if (targetUserId) {
+            query = { authorId: parseInt(targetUserId) };
+        } else {
+            const user = await getUserFromToken(request);
+
+            if (!user || !user.id) {
+                return NextResponse.json({
+                    posts: [],
+                    page,
+                    hasMore: false,
+                }, { status: 200 });
+            }
+
+            const driver = getNeo4jDriver();
+            const session = driver.session();
+            let followingIds: number[] = [];
+
+            try {
+                const result = await session.run(
+                    `
+                    MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
+                    RETURN following.id AS id
+                    `,
+                    { userId: user.id }
+                );
+
+                followingIds = result.records.map(record => {
+                    const idVal = record.get('id');
+                    if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
+                        return idVal.toNumber();
+                    }
+                    return Number(idVal);
+                });
+
+            } catch (neoError) {
+                console.error("Erro ao buscar seguidores no Feed:", neoError);
+            } finally {
+                await session.close();
+            }
+
+            const allowedAuthorIds = [...followingIds, user.id];
+            
+            query = { authorId: { $in: allowedAuthorIds } };
+        }
 
         await connectMongo();
 
