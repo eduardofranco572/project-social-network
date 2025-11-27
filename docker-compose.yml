@@ -10,9 +10,7 @@ services:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 123456789
-      MYSQL_DATABASE: p3
-      MYSQL_USER: p3
-      MYSQL_PASSWORD: 123456789
+      MYSQL_DATABASE: rede_db
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -29,7 +27,7 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: p3
+      MONGO_INITDB_ROOT_USERNAME: rede_social_mongo
       MONGO_INITDB_ROOT_PASSWORD: 123456789
     volumes:
       - mongo-data:/data/db
@@ -45,7 +43,7 @@ services:
       - "7687:7687" # Conexão (Bolt)
     environment:
       # Define o usuário/senha padrão (neo4j/password)
-      NEO4J_AUTH: p3/123456789
+      NEO4J_AUTH: neo4j/123456789
     volumes:
       - neo4j-data:/data
     networks:
