@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import { X, MoreHorizontal, Loader2, Volume2, VolumeX, Play, Trash2 } from 'lucide-react';
 import { PostWithAuthor, LoggedInUser, MediaItem } from './types';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,8 @@ import {
 import { usePostDetail, Comment } from '../hooks/usePostDetail';
 import { usePostMedia } from '../hooks/usePostMedia';
 import '@/app/css/post-detail-modal.css';
+
+import { useFollow } from '@/src/hooks/useFollow';
 
 interface DetailMediaProps {
     media: MediaItem;
@@ -85,16 +88,23 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply
     return (
         <div className="flex flex-col gap-2">
             <div className="flex gap-3 group">
-                <img 
-                    src={comment.user.foto} 
-                    alt={comment.user.nome}
-                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1" 
-                />
+                <Link href={`/perfil/${comment.user.id}`}>
+                    <img 
+                        src={comment.user.foto} 
+                        alt={comment.user.nome}
+                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 cursor-pointer hover:opacity-80 transition-opacity" 
+                    />
+                </Link>
 
                 <div className='text-sm flex-1 min-w-0'>
                     <div className="flex justify-between items-start">
                         <div className="break-words pr-2">
-                            <span className="font-semibold mr-2">{comment.user.nome}</span>
+                            <Link href={`/perfil/${comment.user.id}`}>
+                                <span className="font-semibold mr-2 cursor-pointer hover:underline">
+                                    {comment.user.nome}
+                                </span>
+                            </Link>
+
                             <span>{comment.text}</span>
                         </div>
                         
@@ -187,6 +197,9 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
     const [isMuted, setIsMuted] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    const { isFollowing, toggleFollow, isLoading: isFollowLoading } = useFollow(post.author.id);
+    const isOwnPost = loggedInUser?.id === post.author.id;
+
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -253,22 +266,35 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                 <div className="post-detail-info text-white flex flex-col h-full max-w-[400px] md:max-w-[500px] min-w-[300px] border-l border-neutral-800 bg-[#1c1c1c]">
                     <div className="post-detail-header p-4 border-b border-neutral-800 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <img 
-                                src={post.author.fotoPerfil} 
-                                alt={post.author.nome} 
-                                className="w-8 h-8 rounded-full object-cover border border-neutral-700" 
-                            />
+                            <Link href={`/perfil/${post.author.id}`}>
+                                <img 
+                                    src={post.author.fotoPerfil} 
+                                    alt={post.author.nome} 
+                                    className="w-8 h-8 rounded-full object-cover border border-neutral-700 cursor-pointer hover:opacity-80 transition-opacity" 
+                                />
+                            </Link>
 
                             <div className='flex items-center gap-2'>
-                                <span className="font-semibold text-sm hover:opacity-80 cursor-pointer">
-                                    {post.author.nome}
-                                </span>
+                                <Link href={`/perfil/${post.author.id}`}>
+                                    <span className="font-semibold text-sm hover:opacity-80 cursor-pointer hover:underline">
+                                        {post.author.nome}
+                                    </span>
+                                </Link>
                                 
-                                <span className='text-xs text-neutral-500'>-</span>
+                                {!isOwnPost && (
+                                    <>
+                                        <span className='text-xs text-neutral-500'>-</span>
 
-                                <button className='text-blue-500 text-sm font-semibold hover:text-white transition-colors'>
-                                    Seguir
-                                </button>
+                                        <button 
+                                            onClick={toggleFollow}
+                                            disabled={isFollowLoading}
+                                            className={`text-sm font-semibold transition-colors ${isFollowing ? 'text-white hover:text-neutral-300' : 'text-blue-500 hover:text-white'}`}
+                                        >
+                                            {isFollowLoading ? '...' : (isFollowing ? 'Seguindo' : 'Seguir')}
+                                        </button>
+                                    </>
+                                    
+                                )}
                             </div>
                         </div>
 

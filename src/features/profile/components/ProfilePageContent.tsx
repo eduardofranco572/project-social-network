@@ -31,9 +31,15 @@ export const ProfilePageContent: React.FC<ProfilePageContentProps> = ({ profileI
 
     return (
         <div className="w-full min-h-full bg-background">
-            <ProfileHeader profile={profile} isOwnProfile={isOwnProfile} />
+            <ProfileHeader 
+                profile={profile} 
+                isOwnProfile={isOwnProfile} 
+            />
             
-            <ProfileStats stats={profile.stats} />
+            <ProfileStats 
+                stats={profile.stats} 
+                userId={profile.id} 
+            />
 
             <ProfileFeed 
                 posts={posts} 

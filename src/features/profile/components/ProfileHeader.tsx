@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, UserPlus, Camera } from 'lucide-react';
+import { Settings, UserPlus, UserCheck, Camera, Loader2 } from 'lucide-react'; 
 import { UserProfile } from '../hooks/useProfile';
+import { useFollow } from '@/src/hooks/useFollow'; 
 
 interface ProfileHeaderProps {
     profile: UserProfile;
@@ -9,6 +10,8 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProfile }) => {
+    const { isFollowing, toggleFollow, isLoading } = useFollow(profile.id);
+
     return (
         <div className="relative mb-8">
             <div className="h-48 w-full bg-gradient-to-r from-zinc-800 to-zinc-900 relative">
@@ -39,8 +42,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                                 </Button>
                             ) : (
                                 <>
-                                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                                        <UserPlus size={16} /> Seguir
+                                    <Button 
+                                        className={`gap-2 ${isFollowing ? 'bg-zinc-700 hover:bg-zinc-600' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors`}
+                                        onClick={toggleFollow}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? <Loader2 className="animate-spin size-4" /> : (
+                                            isFollowing ? <><UserCheck size={16} /> Seguindo</> : <><UserPlus size={16} /> Seguir</>
+                                        )}
                                     </Button>
                                     <Button variant="secondary">Mensagem</Button>
                                 </>
