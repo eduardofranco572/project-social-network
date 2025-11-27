@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { X, MoreHorizontal, Loader2, Volume2, VolumeX, Play, Trash2 } from 'lucide-react';
-import { PostWithAuthor, LoggedInUser, MediaItem } from './types';
+import { X, MoreHorizontal, Loader2 } from 'lucide-react';
+import { PostWithAuthor, LoggedInUser } from './types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,158 +15,12 @@ import {
     CarouselPrevious,
     type CarouselApi 
 } from "@/components/ui/carousel";
-import { usePostDetail, Comment } from '../hooks/usePostDetail';
-import { usePostMedia } from '../hooks/usePostMedia';
+import { usePostDetail } from '../hooks/usePostDetail';
 import '@/app/css/post-detail-modal.css';
-
 import { useFollow } from '@/src/hooks/useFollow';
 
-interface DetailMediaProps {
-    media: MediaItem;
-    isVisible: boolean;
-    isMuted: boolean;
-    toggleMute: () => void;
-}
-
-const DetailMedia: React.FC<DetailMediaProps> = ({ media, isVisible, isMuted, toggleMute }) => {
-    const { videoRef, userPaused, isVideo, togglePlay } = usePostMedia(
-        media, isVisible, true, isMuted
-    );
-
-    if (isVideo) {
-        return (
-            <div className="relative w-full h-full bg-black flex items-center justify-center" onClick={togglePlay}>
-                <video
-                    ref={videoRef}
-                    src={media.url}
-                    loop
-                    playsInline
-                    className="max-h-full w-auto max-w-full object-contain cursor-pointer" 
-                />
-
-                {userPaused && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none z-20">
-                        <Play className="h-20 w-20 text-white/90" fill="white" />
-                    </div>
-                )}
-
-                <button 
-                    onClick={(e) => { e.stopPropagation(); toggleMute(); }}
-                    className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors z-30"
-                >
-                    {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative w-full h-full bg-black flex items-center justify-center">
-            <img 
-                src={media.url} 
-                alt="Post Content" 
-                className="max-h-full w-auto max-w-full object-contain"
-            />
-        </div>
-    );
-};
-
-interface CommentItemProps {
-    comment: Comment;
-    allComments: Comment[];
-    onReply: (comment: Comment) => void;
-    onDelete: (commentId: string) => void; 
-    currentUserId?: number;
-}
-
-const CommentItem: React.FC<CommentItemProps> = ({ comment, allComments, onReply, onDelete, currentUserId }) => {
-    const replies = allComments.filter(c => c.parentId === comment._id);
-    const [showReplies, setShowReplies] = useState(false);
-
-    const isAuthor = currentUserId === comment.user.id;
-
-    return (
-        <div className="flex flex-col gap-2">
-            <div className="flex gap-3 group">
-                <Link href={`/perfil/${comment.user.id}`}>
-                    <img 
-                        src={comment.user.foto} 
-                        alt={comment.user.nome}
-                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-1 cursor-pointer hover:opacity-80 transition-opacity" 
-                    />
-                </Link>
-
-                <div className='text-sm flex-1 min-w-0'>
-                    <div className="flex justify-between items-start">
-                        <div className="break-words pr-2">
-                            <Link href={`/perfil/${comment.user.id}`}>
-                                <span className="font-semibold mr-2 cursor-pointer hover:underline">
-                                    {comment.user.nome}
-                                </span>
-                            </Link>
-
-                            <span>{comment.text}</span>
-                        </div>
-                        
-                        {isAuthor && (
-                            <button 
-                                onClick={() => onDelete(comment._id)}
-                                className="text-neutral-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Excluir comentário"
-                            >
-                                <Trash2 size={14} />
-                            </button>
-                        )}
-                    </div>
-                    
-                    <div className='text-xs text-neutral-500 mt-1 flex gap-3 items-center'>
-                        <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
-                        <button 
-                            className='cursor-pointer font-semibold hover:text-neutral-300'
-                            onClick={() => onReply(comment)}
-                        >
-                            Responder
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {replies.length > 0 && (
-                <div className="reply"> 
-                    {!showReplies ? (
-                        <button 
-                            onClick={() => setShowReplies(true)}
-                            className="text-xs text-neutral-400 flex items-center gap-2 hover:text-white mb-2"
-                        >
-                            <div className="w-6 border-t border-neutral-600"></div>
-                            Ver {replies.length} {replies.length === 1 ? 'resposta' : 'respostas'}
-                        </button>
-                    ) : (
-                        <div className="flex flex-col gap-3 border-l-2 border-neutral-800 pl-3">
-                            {replies.map(reply => (
-                                <CommentItem 
-                                    key={reply._id} 
-                                    comment={reply} 
-                                    allComments={allComments} 
-                                    onReply={onReply}
-                                    onDelete={onDelete}
-                                    currentUserId={currentUserId}
-                                />
-                            ))}
-
-                            <button 
-                                onClick={() => setShowReplies(false)}
-                                className="text-xs text-neutral-500 hover:text-white mt-1"
-                            >
-                                Ocultar respostas
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-};
+import { DetailMedia } from './PostDetail/DetailMedia';
+import { CommentItem } from './PostDetail/CommentItem';
 
 interface PostDetailModalProps {
     post: PostWithAuthor;
@@ -285,19 +139,20 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                                     <>
                                         <span className='text-xs text-neutral-500'>-</span>
 
-                                        <button 
-                                            onClick={toggleFollow}
-                                            disabled={isFollowLoading}
-                                            className={`text-sm font-semibold transition-colors ${isFollowing ? 'text-white hover:text-neutral-300' : 'text-blue-500 hover:text-white'}`}
-                                        >
-                                            {isFollowLoading ? '...' : (isFollowing ? 'Seguindo' : 'Seguir')}
-                                        </button>
+                                        {isFollowLoading ? (
+                                            <div className="h-4 w-16 bg-neutral-800 animate-pulse rounded" />
+                                        ) : (
+                                            <button 
+                                                onClick={toggleFollow}
+                                                className={`text-sm font-semibold transition-colors ${isFollowing ? 'text-white hover:text-neutral-300' : 'text-blue-500 hover:text-white'}`}
+                                            >
+                                                {isFollowing ? 'Seguindo' : 'Seguir'}
+                                            </button>
+                                        )}
                                     </>
-                                    
                                 )}
                             </div>
                         </div>
-
                         <MoreHorizontal size={20} className="cursor-pointer hover:opacity-70" />
                     </div>
 

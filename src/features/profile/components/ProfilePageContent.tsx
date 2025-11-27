@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileHeader } from './ProfileHeader';
@@ -9,6 +8,7 @@ import { ProfileStats } from './ProfileStats';
 import { ProfileFeed } from './ProfileFeed';
 import { PostDetailModal } from '@/src/features/post/components/PostDetailModal';
 import { PostWithAuthor } from '@/src/features/post/components/types';
+import { ProfileSkeleton } from './ProfileSkeleton';
 
 interface ProfilePageContentProps {
     profileId: number;
@@ -20,7 +20,7 @@ export const ProfilePageContent: React.FC<ProfilePageContentProps> = ({ profileI
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
     if (loadingProfile) {
-        return <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-primary" /></div>;
+        return <ProfileSkeleton />;
     }
 
     if (!profile) {

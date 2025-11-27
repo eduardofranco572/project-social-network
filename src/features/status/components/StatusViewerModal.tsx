@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { StatusUserData } from './types'; 
 import { useStatusViewer } from '@/src/features/status/hooks/useStatusViewer';
 import { useDeleteStatus } from '@/src/features/status/hooks/useDeleteStatus'; 
@@ -100,8 +101,14 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                     <div className="status-header">
                         <div className="status-header-info">
                             <div className="status-author-details">
-                                <img src={currentUser.author.fotoPerfil || '/img/iconePadrao.svg'} alt={currentUser.author.nome} className="status-author-avatar" />
-                                <h2 className="status-author-name">{currentUser.author.nome}</h2>
+                                <Link 
+                                    href={`/perfil/${currentUser.author.id}`} 
+                                    className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()} 
+                                >
+                                    <img src={currentUser.author.fotoPerfil || '/img/iconePadrao.svg'} alt={currentUser.author.nome} className="status-author-avatar" />
+                                    <h2 className="status-author-name">{currentUser.author.nome}</h2>
+                                </Link>
                             </div>
 
                             <div className="status-header-controls">
