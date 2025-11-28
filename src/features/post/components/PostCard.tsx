@@ -1,14 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import Link from 'next/link';
 import { PostWithAuthor, LoggedInUser } from './types';
 import { 
     Carousel,
     CarouselContent,
     CarouselItem,
-    CarouselNext,
-    CarouselPrevious,
 } from "@/components/ui/carousel";
 import { 
     DropdownMenu,
@@ -27,7 +25,9 @@ import {
     AlertOctagon,
     Volume2, 
     VolumeX,
-    Play 
+    Play,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { cn } from "@/lib/utils"; 
 
@@ -54,7 +54,7 @@ const PostMedia: React.FC<PostMediaProps> = (props) => {
 
     if (isVideo) {
         return (
-            <div className="w-full h-full relative" onClick={togglePlay}>
+            <div className="w-full h-full relative bg-black flex items-center justify-center" onClick={togglePlay}>
                 <video
                     ref={videoRef}
                     src={props.media.url}
@@ -66,7 +66,7 @@ const PostMedia: React.FC<PostMediaProps> = (props) => {
                 </video>
                 
                 {userPaused && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none transition-opacity duration-300">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none transition-opacity duration-300 z-10">
                         <Play className="h-16 w-16 text-white" fill="white" />
                     </div>
                 )}
@@ -78,7 +78,7 @@ const PostMedia: React.FC<PostMediaProps> = (props) => {
         <img
             src={props.media.url}
             alt="Mídia do post"
-            className="insta-media" 
+            className="insta-media"
         />
     );
 };
@@ -93,6 +93,7 @@ interface PostCardProps {
 
 export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDeleteSuccess, onCommentClick, isModalOpen }) => { 
     const {
+        api, 
         setApi,
         current,
         count,
@@ -113,6 +114,18 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
     );
 
     const isAuthor = loggedInUser?.id === post.author.id;
+
+    const handlePrev = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        api?.scrollPrev();
+    }, [api]);
+
+    const handleNext = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        api?.scrollNext();
+    }, [api]);
 
     return (
         <article ref={cardRef} className="w-full max-w-md mx-auto bg-background border border-border rounded-lg mb-6">
@@ -194,27 +207,40 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     
                     {post.media.length > 1 && (
                         <>
-                            <CarouselPrevious className="left-2 bg-black/30 text-white hover:bg-black/50 hover:text-white border-none" />
-                            <CarouselNext className="right-2 bg-black/30 text-white hover:bg-black/50 hover:text-white border-none" />
+                            <button 
+                                onClick={handlePrev}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 z-20 !w-8 !h-8 flex items-center justify-center rounded-full bg-black/60 text-white/90 backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-110 active:scale-95 border-none cursor-pointer shadow-md"
+                                type="button"
+                            >
+                                <ChevronLeft className="h-5 w-5 stroke-[3]" />
+                            </button>
+
+                            <button 
+                                onClick={handleNext}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 z-20 !w-8 !h-8 flex items-center justify-center rounded-full bg-black/60 text-white/90 backdrop-blur-sm transition-all hover:bg-black/80 hover:scale-110 active:scale-95 border-none cursor-pointer shadow-md"
+                                type="button"
+                            >
+                                <ChevronRight className="h-5 w-5 stroke-[3]" />
+                            </button>
                         </>
                     )}
 
                     {count > 1 && (
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-20 pointer-events-none">
                             {Array.from({ length: count }).map((_, i) => (
                                 <span
                                     key={i}
                                     className={cn(
-                                        "h-1.5 w-1.5 rounded-full transition-colors", 
+                                        "h-1.5 w-1.5 rounded-full transition-colors shadow-sm", 
                                         i === current ? "bg-white" : "bg-white/40"
                                     )}
-                                    aria-label={`Slide ${i + 1} de ${count}`}
                                 />
                             ))}
                         </div>
                     )}
                 </Carousel>
             </div>
+            
             <footer className="flex items-center p-2">
                 <div className="flex items-center">
                     <Button 

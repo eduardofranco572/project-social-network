@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['mysql2', 'sequelize'],
+    serverComponentsExternalPackages: [
+      'mysql2', 
+      'sequelize', 
+      '@tensorflow/tfjs-node',
+      '@mapbox/node-pre-gyp' 
+    ],
   },
 
   webpack: (config, { isServer }) => {
@@ -12,11 +17,19 @@ const nextConfig = {
         'tedious',
         'pg',
         'pg-hstore',
-        'mariadb'
+        'mariadb',
+        '@tensorflow/tfjs-node',
+        '@mapbox/node-pre-gyp', 
+        'encoding' 
       ];
 
       config.externals.push(...externals);
     }
+
+    config.module.rules.push({
+      test: /\.html$/,
+      use: 'ignore-loader',
+    });
 
     return config;
   },

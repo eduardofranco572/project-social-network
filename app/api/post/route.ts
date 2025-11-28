@@ -9,13 +9,68 @@ import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { getNeo4jDriver } from '@/src/database/neo4j';
 import { saveFile } from '@/src/lib/uploadUtils'; 
 
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-cpu';
+
+const cocoSsd = require('@tensorflow-models/coco-ssd');
+const jpeg = require('jpeg-js');
+const { PNG } = require('pngjs');
+
+let model: any = null;
+
+async function loadModel() {
+    if (model) return model;
+    
+    await tf.setBackend('cpu');
+    console.log("Carregando modelo IA (CPU)...");
+    
+    model = await cocoSsd.load();
+    console.log("Modelo IA carregado!");
+    return model;
+}
+
+function decodeImage(imageBuffer: Buffer, mimeType: string) {
+    let pixelData;
+    let width, height;
+
+    try {
+        if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+            const decoded = jpeg.decode(imageBuffer, { useTArray: true });
+            pixelData = decoded.data;
+            width = decoded.width;
+            height = decoded.height;
+        } else if (mimeType === 'image/png') {
+            const decoded = PNG.sync.read(imageBuffer);
+            pixelData = decoded.data;
+            width = decoded.width;
+            height = decoded.height;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Erro ao decodificar imagem:", error);
+        return null;
+    }
+
+    const numChannels = 3;
+    const numPixels = width * height;
+    const values = new Int32Array(numPixels * numChannels);
+
+    for (let i = 0; i < numPixels; i++) {
+        for (let c = 0; c < numChannels; c++) {
+            values[i * numChannels + c] = pixelData[i * 4 + c];
+        }
+    }
+
+    return tf.tensor3d(values, [height, width, numChannels], 'int32');
+}
+
 interface JwtPayload {
   id: number;
   nome: string;
   email: string;
 }
 
-// Helper para pegar usuário do token
 async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null> {
     const token = request.cookies.get('auth_token')?.value;
     if (!token) return null;
@@ -50,8 +105,35 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
+        // Lógica da IA
+        const detector = await loadModel();
+        const detectedTags = new Set<string>();
+
         const savePromises = files.map(async (file) => {
             const publicUrl = await saveFile(file, 'posts', user.id);
+
+           
+           if (detector && file.type.startsWith('image/')) {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    
+                    const imageTensor = decodeImage(buffer, file.type);
+                    
+                    if (imageTensor) { 
+                        const predictions = await detector.detect(imageTensor);
+                        
+                        predictions.forEach((pred: any) => {
+                            detectedTags.add(pred.class.toLowerCase()); 
+                        });
+
+                        imageTensor.dispose();
+                    }
+                } catch (err) {
+                    console.error("Erro na detecção IA:", err);
+                }
+            }
+
             return {
                 url: publicUrl,
                 type: file.type 
@@ -64,6 +146,7 @@ export async function POST(request: NextRequest) {
             media: savedMediaItems,
             description: description || '',
             authorId: user.id,
+            autoTags: Array.from(detectedTags) 
         });
 
         await newPost.save();
