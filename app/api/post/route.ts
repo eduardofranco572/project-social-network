@@ -6,6 +6,7 @@ import connectMongo from '@/src/database/mongo';
 import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
+import { getNeo4jDriver } from '@/src/database/neo4j';
 
 interface JwtPayload {
   id: number;
@@ -61,6 +62,9 @@ async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: s
 }
 
 export async function POST(request: NextRequest) {
+    const driver = getNeo4jDriver(); // Iniciar driver
+    const session = driver.session();
+
     try {
         const user = await getUserFromToken(request);
         if (!user || !user.id) {
@@ -71,7 +75,6 @@ export async function POST(request: NextRequest) {
 
         const formData = await request.formData();
         const description = formData.get('description') as string | null;
-
         const files = formData.getAll('files') as File[];
 
         if (!files || files.length === 0) {
@@ -81,17 +84,31 @@ export async function POST(request: NextRequest) {
         const savePromises = files.map(file => saveMedia(file));
         const savedMediaItems = await Promise.all(savePromises);
         
+        // 1. Salvar no MongoDB
         const newPost = new Post({
             media: savedMediaItems.map(item => ({
                 url: item.publicUrl,
                 type: item.mediaType 
             })),
-            
             description: description || '',
             authorId: user.id,
         });
 
         await newPost.save();
+
+        // 2. Salvar nó no Neo4j com DATA DE CRIAÇÃO
+        try {
+            await session.run(
+                `
+                MERGE (p:Post {id: $postId})
+                SET p.createdAt = datetime()
+                `,
+                { postId: newPost._id.toString() }
+            );
+        } catch (neoError) {
+            console.error("Erro ao salvar post no Neo4j:", neoError);
+            // Não bloqueamos o retorno se falhar no Neo4j, mas idealmente tratariamos
+        }
 
         return NextResponse.json({
             message: 'Post criado com sucesso!',
@@ -102,20 +119,68 @@ export async function POST(request: NextRequest) {
         console.error('Erro na rota API de post:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         return NextResponse.json({ message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 });
+    } finally {
+        await session.close();
     }
+
 }
 
 
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = request.nextUrl;
-        const userId = searchParams.get('userId');
+        const targetUserId = searchParams.get('userId');
 
         const page = parseInt(searchParams.get('page') || '1', 10);
         const limit = parseInt(searchParams.get('limit') || '15', 10);
         const offset = (page - 1) * limit;
 
-        const query = userId ? { authorId: parseInt(userId) } : {};
+        let query = {};
+
+        if (targetUserId) {
+            query = { authorId: parseInt(targetUserId) };
+        } else {
+            const user = await getUserFromToken(request);
+
+            if (!user || !user.id) {
+                return NextResponse.json({
+                    posts: [],
+                    page,
+                    hasMore: false,
+                }, { status: 200 });
+            }
+
+            const driver = getNeo4jDriver();
+            const session = driver.session();
+            let followingIds: number[] = [];
+
+            try {
+                const result = await session.run(
+                    `
+                    MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
+                    RETURN following.id AS id
+                    `,
+                    { userId: user.id }
+                );
+
+                followingIds = result.records.map(record => {
+                    const idVal = record.get('id');
+                    if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
+                        return idVal.toNumber();
+                    }
+                    return Number(idVal);
+                });
+
+            } catch (neoError) {
+                console.error("Erro ao buscar seguidores no Feed:", neoError);
+            } finally {
+                await session.close();
+            }
+
+            const allowedAuthorIds = [...followingIds, user.id];
+            
+            query = { authorId: { $in: allowedAuthorIds } };
+        }
 
         await connectMongo();
 

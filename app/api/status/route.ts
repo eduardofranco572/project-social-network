@@ -7,6 +7,7 @@ import Status from '@/src/models/status';
 
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import getSequelizeInstance from '@/src/database/database';
+import { getNeo4jDriver } from '@/src/database/neo4j'; // Importar o driver do Neo4j
 
 interface JwtPayload {
   id: number;
@@ -132,10 +133,46 @@ interface AuthorWithStatuses {
 
 export async function GET(request: NextRequest) {
     try {
+        const user = await getUserFromToken(request);
+
+        if (!user || !user.id) {
+            return NextResponse.json([], { status: 200 });
+        }
+
+        const driver = getNeo4jDriver();
+        const session = driver.session();
+        let followingIds: number[] = [];
+
+        try {
+            const result = await session.run(
+                `
+                MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
+                RETURN following.id AS id
+                `,
+                { userId: user.id }
+            );
+
+            followingIds = result.records.map(record => {
+                const idVal = record.get('id');
+                if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
+                    return idVal.toNumber();
+                }
+                return Number(idVal);
+            });
+            
+        } catch (neoError) {
+            console.error("Erro ao buscar seguidores no Neo4j", neoError);
+        } finally {
+            await session.close();
+        }
+
+        const allowedAuthorIds = [...followingIds, user.id];
+
         await connectMongo();
 
-        // Buscar todos os status
-        const allStatuses = await Status.find().sort({ authorId: 1, createdAt: 1 }).exec();
+        const allStatuses = await Status.find({
+            authorId: { $in: allowedAuthorIds }
+        }).sort({ authorId: 1, createdAt: 1 }).exec();
 
         if (!allStatuses || allStatuses.length === 0) {
             return NextResponse.json([], { status: 200 });
@@ -175,9 +212,9 @@ export async function GET(request: NextRequest) {
         // Mapear autores
         const authorMap = new Map(authors.map(author => [author.USU_ID, author]));
 
-        // Combinar dados e criar a resposta final
         const responseData: AuthorWithStatuses[] = [];
-        for (const authorId of Array.from(authorIds)) {
+        
+        for (const authorId of Array.from(statusMap.keys())) {
             const author = authorMap.get(authorId);
             const statuses = statusMap.get(authorId);
 
@@ -193,8 +230,10 @@ export async function GET(request: NextRequest) {
             }
         }
         
-        // Ordenar os status mais recentes apareçam primeiro na lista
         responseData.sort((a, b) => {
+            if (a.author.id === user.id) return -1;
+            if (b.author.id === user.id) return 1;
+
             const lastStatusA = new Date(a.statuses[a.statuses.length - 1].createdAt).getTime();
             const lastStatusB = new Date(b.statuses[b.statuses.length - 1].createdAt).getTime();
             return lastStatusB - lastStatusA;

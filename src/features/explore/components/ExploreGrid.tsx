@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { Loader2, Layers, MessageCircle, Heart } from 'lucide-react';
-import { usePosts } from '@/src/features/post/hooks/usePosts';
+import { useExplorePosts } from '../hooks/useExplorePosts';
 import { PostWithAuthor } from '@/src/features/post/components/types';
 import { PostDetailModal } from '@/src/features/post/components/PostDetailModal';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 
 export const ExploreGrid: React.FC = () => {
-    const { posts, isLoading, hasMore, lastPostElementRef } = usePosts(30); //limite de 30 post 
+    const { posts, isLoading, hasMore, lastPostElementRef } = useExplorePosts(15); 
+    
     const { user: loggedInUser } = useCurrentUser();
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
@@ -24,7 +25,7 @@ export const ExploreGrid: React.FC = () => {
                     return (
                         <div 
                             key={post._id}
-                            ref={isLast ? lastPostElementRef : null}
+                            ref={isLast ? lastPostElementRef : null} 
                             className="relative group bg-zinc-900 cursor-pointer overflow-hidden rounded-md break-inside-avoid mb-4"
                             onClick={() => setSelectedPost(post)}
                         >
@@ -65,9 +66,10 @@ export const ExploreGrid: React.FC = () => {
             )}
 
             {!isLoading && !hasMore && posts.length > 0 && (
-                <p className="text-center text-neutral-500 mt-10">Isso é tudo por enquanto.</p>
+                <p className="text-center text-neutral-500 mt-10">
+                    Isso é tudo por enquanto.
+                </p>
             )}
-
             {selectedPost && (
                 <PostDetailModal 
                     post={selectedPost}
