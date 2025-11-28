@@ -8,49 +8,83 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: #000; 
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 50;
+    overflow: hidden;
+}
+
+.status-backdrop-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.3;
+    filter: blur(60px);
+    transform: scale(1.2);
+    pointer-events: none;
+}
+
+.status-backdrop-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .status-viewer-content {
-    background-color: #000;
-    border-radius: 0.5rem; 
-    width: 90vw;
-    max-width: 450px;
-    height: 95vh;
-    max-height: 850px;
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px; 
+    height: 100%;
+    max-height: 880px; 
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    z-index: 10;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 640px) {
+    .status-viewer-content {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
 }
 
 .status-nav-arrow {
     position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 3rem; 
-    color: white;
+    font-size: 2rem; 
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     z-index: 51;
-    padding: 0.625rem; 
+    padding: 1rem; 
     user-select: none;
-    border-radius: 9999px; 
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .status-nav-arrow:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
 }
 
-.status-nav-arrow.prev {
-    left: 0.625rem; 
-}
+.status-nav-arrow.prev { left: 20px; }
+.status-nav-arrow.next { right: 20px; }
 
-.status-nav-arrow.next {
-    right: 0.625rem; 
+@media (max-width: 768px) {
+    .status-nav-arrow { display: none; }
 }
 
 .status-viewer-body {
@@ -68,12 +102,16 @@
     align-items: center;
     height: 100%;
     width: 100%;
+    position: relative;
+    background: #000;
 }
 
 .status-media-item {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: contain; 
+    position: relative;
+    z-index: 2;
 }
 
 .status-click-zone {
@@ -84,24 +122,17 @@
     cursor: pointer;
 }
 
-.status-click-zone.prev {
-    left: 0;
-    width: 50%;
-}
-
-.status-click-zone.next {
-    right: 0;
-    width: 50%;
-}
+.status-click-zone.prev { left: 0; width: 35%; }
+.status-click-zone.next { right: 0; width: 65%; }
 
 .status-header {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    padding: 0.75rem; 
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-    z-index: 10;
+    padding: 1rem 0.75rem; 
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+    z-index: 20;
 }
 
 .status-header-info {
@@ -109,12 +140,13 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    margin-top: 8px; 
 }
 
 .status-author-details {
     display: flex;
     align-items: center;
-    gap: 0.625rem; 
+    gap: 0.75rem; 
 }
 
 .status-author-avatar {
@@ -126,14 +158,14 @@
 
 .status-author-name {
     color: white;
-    font-size: 1rem; 
-    font-weight: 700;
+    font-size: 0.95rem; 
+    font-weight: 600;
 }
 
 .status-header-controls {
     display: flex;
     align-items: center;
-    gap: 0.5rem; 
+    gap: 0.25rem; 
 }
 
 .status-control-button {
@@ -141,38 +173,44 @@
     border: none;
     color: white;
     cursor: pointer;
-    padding: 0.25rem; 
-    transition: opacity 0.2s;
+    padding: 0.5rem; 
+    border-radius: 50%;
+    transition: background-color 0.2s;
 }
 
 .status-control-button:hover {
-    opacity: 0.7;
+    background-color: rgba(255,255,255,0.1);
 }
 
 .status-control-button svg {
-    width: 1.2rem; 
-    height: 1.2rem; 
+    width: 1.25rem; 
+    height: 1.25rem; 
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
 }
 
 .status-progress-container {
     display: flex;
-    gap: 0.25rem; 
-    height: 3px;
+    gap: 4px; 
+    height: 2px;
     width: 100%;
-    margin-top: 0.75rem; 
+    position: absolute;
+    top: 10px;
+    left: 0;
+    padding: 0 10px;
 }
 
 .status-progress-bar {
     flex: 1;
     background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 9999px; 
-    height: 3px;
+    border-radius: 2px; 
+    height: 2px;
+    overflow: hidden;
 }
 
 .status-progress-fill {
     height: 100%;
     background-color: white;
-    border-radius: 9999px; 
+    border-radius: 2px;
 }
 
 .status-description {
@@ -180,9 +218,9 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 0.75rem; 
-    padding-bottom: 1.25rem; 
-    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    padding: 1.5rem 1rem; 
+    padding-bottom: 2.5rem; 
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
     text-align: center;
     z-index: 10;
     pointer-events: none;
@@ -190,5 +228,6 @@
 
 .status-description p {
     color: white;
-    font-size: 15px;
+    font-size: 1rem;
+    line-height: 1.4;
 }

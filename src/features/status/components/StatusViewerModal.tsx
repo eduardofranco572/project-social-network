@@ -12,7 +12,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from '@/components/ui/button'; 
 import '@/app/css/status-viewer.css';
 
 interface StatusViewerModalProps {
@@ -58,7 +57,14 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
 
     return (
         <div className="status-viewer-overlay" onClick={onClose}>
-            
+            <div className="status-backdrop-layer">
+                {isVideo ? (
+                    <video src={currentStatus.mediaUrl} className="status-backdrop-media" muted />
+                ) : (
+                    <img src={currentStatus.mediaUrl} alt="" className="status-backdrop-media" />
+                )}
+            </div>
+
             <div 
                 className="status-nav-arrow prev"
                 onClick={(e) => { e.stopPropagation(); onClickPrevUser(); }}
@@ -71,8 +77,15 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="status-viewer-body">
-
                     <div className="status-media-container">
+                        <div className="absolute inset-0 -z-10 overflow-hidden">
+                            {isVideo ? (
+                                <video src={currentStatus.mediaUrl} className="w-full h-full object-cover blur-2xl opacity-50 scale-110" muted />
+                            ) : (
+                                <img src={currentStatus.mediaUrl} alt="" className="w-full h-full object-cover blur-2xl opacity-50 scale-110" />
+                            )}
+                        </div>
+
                         <div 
                             className="status-click-zone prev" 
                             onClick={onClickPrevStatus} 
@@ -91,10 +104,10 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                                 playsInline
                                 onEnded={handleVideoEnd}
                                 onTimeUpdate={handleTimeUpdate}
-                                className="status-media-item"
+                                className="status-media-item shadow-lg" 
                             />
                         ) : (
-                            <img src={currentStatus.mediaUrl} alt="Status" className="status-media-item" />
+                            <img src={currentStatus.mediaUrl} alt="Status" className="status-media-item shadow-lg" />
                         )}
                     </div>
 
@@ -104,10 +117,10 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                                 <Link 
                                     href={`/perfil/${currentUser.author.id}`} 
                                     className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
-                                    onClick={(e) => e.stopPropagation()} 
+                                    onClick={(e) => {e.stopPropagation(); onClose();}} 
                                 >
-                                    <img src={currentUser.author.fotoPerfil || '/img/iconePadrao.svg'} alt={currentUser.author.nome} className="status-author-avatar" />
-                                    <h2 className="status-author-name">{currentUser.author.nome}</h2>
+                                    <img src={currentUser.author.fotoPerfil || '/img/iconePadrao.svg'} alt={currentUser.author.nome} className="status-author-avatar border border-white/20" />
+                                    <h2 className="status-author-name drop-shadow-md">{currentUser.author.nome}</h2>
                                 </Link>
                             </div>
 
@@ -135,10 +148,10 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                                         </button>
                                     </DropdownMenuTrigger>
 
-                                    <DropdownMenuContent className="mr-4">
+                                    <DropdownMenuContent className="mr-4 bg-zinc-900 border-zinc-800 text-white">
                                         {isAuthor && (
                                             <DropdownMenuItem
-                                                className="text-destructive focus:text-destructive"
+                                                className="text-destructive focus:text-destructive focus:bg-zinc-800 cursor-pointer"
                                                 onSelect={onDelete}
                                                 disabled={isDeleting}
                                             >
@@ -148,7 +161,7 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                                         )}
                                         
                                         {!isAuthor && (
-                                            <DropdownMenuItem onSelect={() => console.log('Denunciado!')}>
+                                            <DropdownMenuItem className="focus:bg-zinc-800 cursor-pointer" onSelect={() => console.log('Denunciado!')}>
                                                 Denunciar
                                             </DropdownMenuItem>
                                         )}
@@ -186,7 +199,7 @@ const StatusViewerModal: React.FC<StatusViewerModalProps> = ({ allStatusUsers, s
                     
                     {currentStatus.description && (
                         <div className="status-description">
-                            <p>{currentStatus.description}</p>
+                            <p className="drop-shadow-md font-medium">{currentStatus.description}</p>
                         </div>
                     )}
                 </div>
