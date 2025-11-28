@@ -62,6 +62,9 @@ async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: s
 }
 
 export async function POST(request: NextRequest) {
+    const driver = getNeo4jDriver(); // Iniciar driver
+    const session = driver.session();
+
     try {
         const user = await getUserFromToken(request);
         if (!user || !user.id) {
@@ -72,7 +75,6 @@ export async function POST(request: NextRequest) {
 
         const formData = await request.formData();
         const description = formData.get('description') as string | null;
-
         const files = formData.getAll('files') as File[];
 
         if (!files || files.length === 0) {
@@ -82,17 +84,31 @@ export async function POST(request: NextRequest) {
         const savePromises = files.map(file => saveMedia(file));
         const savedMediaItems = await Promise.all(savePromises);
         
+        // 1. Salvar no MongoDB
         const newPost = new Post({
             media: savedMediaItems.map(item => ({
                 url: item.publicUrl,
                 type: item.mediaType 
             })),
-            
             description: description || '',
             authorId: user.id,
         });
 
         await newPost.save();
+
+        // 2. Salvar nó no Neo4j com DATA DE CRIAÇÃO
+        try {
+            await session.run(
+                `
+                MERGE (p:Post {id: $postId})
+                SET p.createdAt = datetime()
+                `,
+                { postId: newPost._id.toString() }
+            );
+        } catch (neoError) {
+            console.error("Erro ao salvar post no Neo4j:", neoError);
+            // Não bloqueamos o retorno se falhar no Neo4j, mas idealmente tratariamos
+        }
 
         return NextResponse.json({
             message: 'Post criado com sucesso!',
@@ -103,7 +119,10 @@ export async function POST(request: NextRequest) {
         console.error('Erro na rota API de post:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         return NextResponse.json({ message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 });
+    } finally {
+        await session.close();
     }
+
 }
 
 
