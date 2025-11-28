@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { writeFile, unlink } from 'fs/promises';
-import path from 'path';
+import { unlink } from 'fs/promises';
+import path from 'path'; 
 import jwt from 'jsonwebtoken';
 import connectMongo from '@/src/database/mongo';
 import Status from '@/src/models/status';  
-
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import getSequelizeInstance from '@/src/database/database';
-import { getNeo4jDriver } from '@/src/database/neo4j'; // Importar o driver do Neo4j
+import { getNeo4jDriver } from '@/src/database/neo4j';
+import { saveFile } from '@/src/lib/uploadUtils'; 
 
 interface JwtPayload {
   id: number;
@@ -17,14 +17,10 @@ interface JwtPayload {
 
 async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null> {
     const token = request.cookies.get('auth_token')?.value;
-    if (!token) {
-        return null;
-    }
+    if (!token) return null;
     
     const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        return null;
-    }
+    if (!secret) return null;
 
     try {
         const decoded = jwt.verify(token, secret) as JwtPayload;
@@ -35,45 +31,6 @@ async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null
     }
 }
 
-// Helper de Upload
-async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: string }> {
-    const bytes = await media.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Nome de arquivo único
-    const filename = `${Date.now()}-${media.name.replace(/\s/g, '_')}`;
-    const publicDir = path.join(process.cwd(), 'public');
-    const uploadsDir = path.join(publicDir, 'uploads');
-    const filepath = path.join(uploadsDir, filename);
-    
-    // URL que o frontend usará
-    const publicUrl = `/uploads/${filename}`;
-    const mediaType = media.type;
-
-    try {
-        await writeFile(filepath, buffer);
-
-    } catch (error) {
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-            try {
-                const fs = require('fs/promises');
-
-                await fs.mkdir(uploadsDir, { recursive: true });
-                await writeFile(filepath, buffer);
-
-            } catch (mkdirError) {
-                console.error('Erro ao criar diretório ou salvar:', mkdirError);
-                throw new Error('Falha ao salvar mídia após criar diretório.');
-            }
-        } else {
-           throw error;
-        }
-    }
-    
-    return { publicUrl, mediaType };
-}
-
-// Rota POST para criar Status
 export async function POST(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
@@ -92,12 +49,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo de mídia enviado.' }, { status: 400 });
         }
 
-        // Salvar o arquivo imagem/vídeo
-        const { publicUrl, mediaType } = await saveMedia(file);
+        const publicUrl = await saveFile(file, 'status', user.id);
 
         const newStatus = new Status({
             mediaUrl: publicUrl,
-            mediaType: mediaType,
+            mediaType: file.type,
             description: description || '',
             authorId: user.id,
         });
@@ -144,6 +100,7 @@ export async function GET(request: NextRequest) {
         let followingIds: number[] = [];
 
         try {
+            // Busca quem o usuário segue no Neo4j
             const result = await session.run(
                 `
                 MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
@@ -178,7 +135,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json([], { status: 200 });
         }
 
-        // Agrupar status por authorId no Mongo
         const statusMap = new Map<number, any[]>();
         const authorIds = new Set<number>();
 
@@ -248,7 +204,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-
 export async function DELETE(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
@@ -268,20 +223,18 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ message: 'Status não encontrado.' }, { status: 404 });
         }
 
-        // Verificação de propriedade
         if (status.authorId !== user.id) {
             return NextResponse.json({ message: 'Você não tem permissão para excluir este status.' }, { status: 403 });
         }
 
-        // Excluir o arquivo do disco
         try {
             const filePath = path.join(process.cwd(), 'public', status.mediaUrl);
             await unlink(filePath);
+
         } catch (fileError) {
             console.warn(`Falha ao excluir arquivo: ${status.mediaUrl}`, fileError);
         }
 
-        // Excluir o documento do MongoDB
         await Status.findByIdAndDelete(statusId);
 
         return NextResponse.json({ message: 'Status excluído com sucesso' }, { status: 200 });

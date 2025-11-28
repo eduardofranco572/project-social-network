@@ -6,13 +6,15 @@ import { PostWithAuthor } from '../components/types';
 export const usePosts = (limit: number = 15) => {
     const [posts, setPosts] = useState<PostWithAuthor[]>([]);
     const [page, setPage] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
+    
+    const [isLoading, setIsLoading] = useState(true); 
+    
     const [hasMore, setHasMore] = useState(true);
     
     const observer = useRef<IntersectionObserver | null>(null);
 
     const fetchPosts = useCallback(async (pageNum: number) => {
-        if (isLoading || !hasMore) return;
+        if (!hasMore) return;
         
         setIsLoading(true);
         try {
@@ -37,9 +39,8 @@ export const usePosts = (limit: number = 15) => {
         } finally {
             setIsLoading(false);
         }
-    }, [isLoading, hasMore, limit]);
+    }, [hasMore, limit]);
 
-    // Hook para o IntersectionObserver
     const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
         if (isLoading) return;
 

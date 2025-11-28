@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { writeFile, unlink } from 'fs/promises'; 
+import { unlink } from 'fs/promises'; 
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import connectMongo from '@/src/database/mongo';
@@ -7,6 +7,7 @@ import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { getNeo4jDriver } from '@/src/database/neo4j';
+import { saveFile } from '@/src/lib/uploadUtils'; 
 
 interface JwtPayload {
   id: number;
@@ -14,6 +15,7 @@ interface JwtPayload {
   email: string;
 }
 
+// Helper para pegar usuário do token
 async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null> {
     const token = request.cookies.get('auth_token')?.value;
     if (!token) return null;
@@ -28,41 +30,8 @@ async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null
     }
 }
 
-async function saveMedia(media: File): Promise<{ publicUrl: string, mediaType: string }> {
-    const bytes = await media.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filename = `${Date.now()}-${media.name.replace(/\s/g, '_')}`;
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    const filepath = path.join(uploadsDir, filename);
-    const publicUrl = `/uploads/${filename}`;
-    
-    const mediaType = media.type; 
-
-    try {
-        await writeFile(filepath, buffer);
-
-    } catch (error) {
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-            try {
-                const fs = require('fs/promises');
-                await fs.mkdir(uploadsDir, { recursive: true });
-                await writeFile(filepath, buffer);
-
-            } catch (mkdirError) {
-                console.error('Erro ao criar diretório ou salvar:', mkdirError);
-                throw new Error('Falha ao salvar mídia.');
-            }
-
-        } else {
-           throw error;
-        }
-    }
-
-    return { publicUrl, mediaType };
-}
-
 export async function POST(request: NextRequest) {
-    const driver = getNeo4jDriver(); // Iniciar driver
+    const driver = getNeo4jDriver();
     const session = driver.session();
 
     try {
@@ -81,22 +50,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
-        const savePromises = files.map(file => saveMedia(file));
+        const savePromises = files.map(async (file) => {
+            const publicUrl = await saveFile(file, 'posts', user.id);
+            return {
+                url: publicUrl,
+                type: file.type 
+            };
+        });
+
         const savedMediaItems = await Promise.all(savePromises);
         
-        // 1. Salvar no MongoDB
         const newPost = new Post({
-            media: savedMediaItems.map(item => ({
-                url: item.publicUrl,
-                type: item.mediaType 
-            })),
+            media: savedMediaItems,
             description: description || '',
             authorId: user.id,
         });
 
         await newPost.save();
 
-        // 2. Salvar nó no Neo4j com DATA DE CRIAÇÃO
         try {
             await session.run(
                 `
@@ -107,7 +78,6 @@ export async function POST(request: NextRequest) {
             );
         } catch (neoError) {
             console.error("Erro ao salvar post no Neo4j:", neoError);
-            // Não bloqueamos o retorno se falhar no Neo4j, mas idealmente tratariamos
         }
 
         return NextResponse.json({
@@ -118,13 +88,15 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Erro na rota API de post:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 });
+
+        return NextResponse.json(
+            { message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 }
+        );
+
     } finally {
         await session.close();
     }
-
 }
-
 
 export async function GET(request: NextRequest) {
     try {
@@ -157,17 +129,19 @@ export async function GET(request: NextRequest) {
             try {
                 const result = await session.run(
                     `
-                    MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
-                    RETURN following.id AS id
+                        MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
+                        RETURN following.id AS id
                     `,
                     { userId: user.id }
                 );
 
                 followingIds = result.records.map(record => {
                     const idVal = record.get('id');
+
                     if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
                         return idVal.toNumber();
                     }
+                    
                     return Number(idVal);
                 });
 
@@ -241,10 +215,12 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Erro ao buscar posts:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ message: 'Erro interno ao buscar posts.', error: errorMessage }, { status: 500 });
+
+        return NextResponse.json(
+            { message: 'Erro interno ao buscar posts.', error: errorMessage }, { status: 500 }
+        );
     }
 }
-
 
 export async function DELETE(request: NextRequest) {
     try {
@@ -270,18 +246,34 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ message: 'Você não tem permissão para excluir este post.' }, { status: 403 });
         }
 
-        // Excluir os arquivos de mídia 
         for (const media of post.media) {
             try {
                 const filePath = path.join(process.cwd(), 'public', media.url);
+
                 await unlink(filePath);
+
             } catch (fileError) {
-                console.warn(`Falha ao excluir arquivo: ${media.url}`, fileError);
+                console.warn(`Falha ao excluir arquivo do disco: ${media.url}`, fileError);
             }
         }
 
-        // Excluir o post do banco de dados
         await Post.findByIdAndDelete(postId);
+
+        const driver = getNeo4jDriver();
+        const session = driver.session();
+
+        try {
+             await session.run(
+                `MATCH (p:Post {id: $postId}) DETACH DELETE p`,
+                { postId: postId }
+            );
+
+        } catch(neoError) {
+             console.error("Erro ao deletar post do Neo4j", neoError);
+             
+        } finally {
+            await session.close();
+        }
 
         return NextResponse.json({ message: 'Post excluído com sucesso' }, { status: 200 });
 
