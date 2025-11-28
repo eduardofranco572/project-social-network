@@ -82,7 +82,7 @@ const StatusCarousel: React.FC = () => {
                             className="w-16 h-16 rounded-full border-[2px] border-white p-0.5 object-cover"
                         />
 
-                        <span className="text-sm text-white text-center overflow-hidden text-ellipsis whitespace-nowrap w-full">
+                        <span className="text-xs text-white text-center w-full truncate block px-1">
                             {userStatus.author.nome}
                         </span>
                     </div>

@@ -5,6 +5,7 @@ import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { recommendationService } from '@/src/services/recommendationService';
+import { getNeo4jDriver } from '@/src/database/neo4j'; // Importar driver Neo4j
 
 async function getUserFromToken(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value;
@@ -24,14 +25,53 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1', 10);
         const limit = parseInt(searchParams.get('limit') || '15', 10);
 
+        let excludedAuthorIds: number[] = [];
+        
+        if (user && user.id) {
+            excludedAuthorIds.push(user.id);
+
+            const driver = getNeo4jDriver();
+            const session = driver.session();
+
+            try {
+                // IDs de quem o usuário segue
+                const result = await session.run(
+                    `
+                    MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
+                    RETURN following.id AS id
+                    `,
+                    { userId: user.id }
+                );
+
+                const followingIds = result.records.map(record => {
+                    const idVal = record.get('id');
+
+                    if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
+                        return idVal.toNumber();
+                    }
+
+                    return Number(idVal);
+                });
+
+                excludedAuthorIds = [...excludedAuthorIds, ...followingIds];
+
+            } catch (neoError) {
+                console.error("Erro ao buscar seguidores no Explore:", neoError);
+            } finally {
+                await session.close();
+            }
+        }
+
         await connectMongo();
 
         let postIds: string[] = [];
 
+        // Buscar Recomendações
         if (user && user.id) {
             postIds = await recommendationService.getCollaborativeRecommendations(user.id, page, limit);
         }
 
+        // Backfill com posts aleatórios
         if (postIds.length < limit) {
             const randomCount = limit - postIds.length;
             
@@ -43,7 +83,8 @@ export async function GET(request: NextRequest) {
                 { 
                     $match: { 
                         _id: { $nin: excludeIds },
-                        likes: { $ne: user?.id }
+                        likes: { $ne: user?.id },
+                        authorId: { $nin: excludedAuthorIds } // Remove posts de seguidos/eu
                     } 
                 },
                 { $sample: { size: randomCount } },
@@ -61,7 +102,10 @@ export async function GET(request: NextRequest) {
             }, { status: 200 });
         }
 
-        const posts = await Post.find({ _id: { $in: postIds } }).lean();
+        const posts = await Post.find({ 
+            _id: { $in: postIds },
+            authorId: { $nin: excludedAuthorIds }
+        }).lean();
 
         const authorIds = Array.from(new Set(posts.map(post => post.authorId)));
         const sequelize = getSequelizeInstance();
@@ -96,7 +140,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ 
             posts: populatedPosts,
-            hasMore: populatedPosts.length === limit
+            hasMore: populatedPosts.length > 0
         }, { status: 200 });
 
     } catch (error) {
