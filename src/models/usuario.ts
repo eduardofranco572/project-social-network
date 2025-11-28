@@ -9,6 +9,7 @@ interface UsuarioAttributes {
     USU_SENHA: string;
     USU_NOME: string;
     USU_FOTO_PERFIL?: string;
+    USU_BANNER?: string;
 }
 
 interface UsuarioCreationAttributes extends Optional<UsuarioAttributes, 'USU_ID'> {}
@@ -18,7 +19,8 @@ class Usuario extends Model<UsuarioAttributes, UsuarioCreationAttributes> implem
     public USU_LOGIN!: string;
     public USU_SENHA!: string;
     public USU_NOME!: string;
-    public USU_FOTO_PERFIL?: string; 
+    public USU_FOTO_PERFIL?: string;
+    public USU_BANNER?: string; 
 
 }
 
@@ -48,6 +50,11 @@ export const initUsuarioModel = (sequelize: SequelizeInstance) => {
         },
 
         USU_FOTO_PERFIL: {
+            type: DataTypes.STRING,
+            allowNull: true 
+        },
+
+        USU_BANNER: {
             type: DataTypes.STRING,
             allowNull: true 
         }

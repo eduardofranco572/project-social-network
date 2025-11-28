@@ -1,23 +1,38 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Loader2, Layers, MessageCircle, Heart } from 'lucide-react';
+import { Layers, MessageCircle, Heart, Play } from 'lucide-react';
 import { useExplorePosts } from '../hooks/useExplorePosts';
 import { PostWithAuthor } from '@/src/features/post/components/types';
 import { PostDetailModal } from '@/src/features/post/components/PostDetailModal';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 
+const ExploreSkeleton = () => {
+    const heights = [380, 520, 300, 450, 350, 500, 400, 320, 480];
+
+    return (
+        <div className="columns-2 md:columns-3 gap-4 space-y-4 w-full mt-4">
+            {Array.from({ length: 9 }).map((_, i) => (
+                <div 
+                    key={i} 
+                    className="w-full bg-zinc-800 animate-pulse rounded-md break-inside-avoid mb-4"
+                    style={{ height: `${heights[i % heights.length]}px` }} 
+                />
+            ))}
+        </div>
+    );
+};
+
 export const ExploreGrid: React.FC = () => {
     const { posts, isLoading, hasMore, lastPostElementRef } = useExplorePosts(15); 
-    
     const { user: loggedInUser } = useCurrentUser();
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
     return (
-        <div className="max-w-5xl mx-auto py-8 px-4">
+        <div className="max-w-5xl mx-auto py-8 px-4 w-full">
             <h1 className="text-2xl font-bold mb-6 px-1">Explorar</h1>
 
-            <div className="columns-2 md:columns-3 gap-4 space-y-4">
+            <div className="columns-2 md:columns-3 gap-4 space-y-4 w-full">
                 {posts.map((post, index) => {
                     const isLast = posts.length === index + 1;
                     const isVideo = post.media[0].type.startsWith('video/');
@@ -26,7 +41,7 @@ export const ExploreGrid: React.FC = () => {
                         <div 
                             key={post._id}
                             ref={isLast ? lastPostElementRef : null} 
-                            className="relative group bg-zinc-900 cursor-pointer overflow-hidden rounded-md break-inside-avoid mb-4"
+                            className="relative group bg-zinc-900 cursor-pointer overflow-hidden rounded-md break-inside-avoid mb-4 w-full"
                             onClick={() => setSelectedPost(post)}
                         >
                             {isVideo ? (
@@ -45,6 +60,7 @@ export const ExploreGrid: React.FC = () => {
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white font-bold z-10">
                                 <div className="flex items-center gap-2">
                                     <Heart fill="white" size={20} />
+                                    <span>{post.likes.length}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <MessageCircle fill="white" size={20} />
@@ -59,17 +75,14 @@ export const ExploreGrid: React.FC = () => {
                 })}
             </div>
 
-            {isLoading && (
-                <div className="flex justify-center py-10 w-full">
-                    <Loader2 className="animate-spin text-neutral-500" size={32} />
-                </div>
-            )}
+            {isLoading && <ExploreSkeleton />}
 
             {!isLoading && !hasMore && posts.length > 0 && (
                 <p className="text-center text-neutral-500 mt-10">
                     Isso é tudo por enquanto.
                 </p>
             )}
+
             {selectedPost && (
                 <PostDetailModal 
                     post={selectedPost}
@@ -82,7 +95,7 @@ export const ExploreGrid: React.FC = () => {
 };
 
 const PlayIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-play">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="6 3 20 12 6 21 6 3" />
     </svg>
 );

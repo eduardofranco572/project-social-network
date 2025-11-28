@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; 
 import { Button } from '@/components/ui/button';
-import { Settings, UserPlus, UserCheck, Camera, Loader2 } from 'lucide-react'; 
+import { Settings, UserPlus, UserCheck, Camera, Loader2, Image as ImageIcon } from 'lucide-react'; 
 import { UserProfile } from '../hooks/useProfile';
 import { useFollow } from '@/src/hooks/useFollow'; 
-import { StatusUserData } from '@/src/features/status/components/types';
 import StatusViewerModal from '@/src/features/status/components/StatusViewerModal';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 
@@ -16,38 +15,53 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
     const { isFollowing, toggleFollow, isLoading } = useFollow(profile.id);
     const { user: loggedInUser } = useCurrentUser();
 
-    const [userStatus, setUserStatus] = useState<StatusUserData | null>(null);
+    const [banner, setBanner] = useState<string | null>(profile.banner || null);
+    const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
+    const userStatus = profile.status || null; 
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchUserStatus = async () => {
+    const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setIsUploadingBanner(true);
+
+            const formData = new FormData();
+            formData.append('banner', file);
+
             try {
-                const res = await fetch('/api/status');
+                const res = await fetch(`/api/users/${profile.id}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                
                 if (res.ok) {
-                    const data: StatusUserData[] = await res.json();
-                    const found = data.find(s => s.author.id === profile.id);
-                    if (found) {
-                        setUserStatus(found);
-                    }
+                    const data = await res.json();
+                    setBanner(data.bannerUrl);
                 }
             } catch (error) {
-                console.error("Erro ao verificar status do perfil", error);
+                console.error("Erro upload banner", error);
+            } finally {
+                setIsUploadingBanner(false);
             }
-        };
-
-        fetchUserStatus();
-    }, [profile.id]);
+        }
+    };
 
     const hasStatus = userStatus && userStatus.statuses.length > 0;
 
     return (
         <>
             <div className="relative mb-8">
-                <div className="h-48 w-full bg-gradient-to-r from-zinc-800 to-zinc-900 relative">
+                <div className="h-48 w-full bg-gradient-to-r from-zinc-800 to-zinc-900 relative overflow-hidden group">
+                    {(banner && banner.length > 0) && (
+                        <img src={banner} alt="Capa" className="absolute inset-0 w-full h-full object-cover z-10" />
+                    )}
+
                     {isOwnProfile && (
-                        <button className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white transition-all">
-                            <Camera size={20} />
-                        </button>
+                        <label className="absolute bottom-4 right-4 p-2 bg-black/50 rounded-full hover:bg-black/70 text-white transition-all cursor-pointer opacity-0 group-hover:opacity-100 z-20">
+                            {isUploadingBanner ? <Loader2 className="animate-spin" size={20} /> : <ImageIcon size={20} />}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+                        </label>
                     )}
                 </div>
 
@@ -55,7 +69,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                     <div className="flex flex-col md:flex-row items-end gap-6 -mt-20 md:-mt-28"> 
                         <div className="relative flex-shrink-0 md:translate-y-4">
                             <div 
-                                className={`w-32 h-32 md:w-44 md:h-44 rounded-full border-4 overflow-hidden bg-zinc-800 transition-colors duration-300
+                                className={`w-32 h-32 md:w-44 md:h-44 rounded-full border-4 overflow-hidden bg-zinc-800 transition-colors duration-300 relative
                                     ${hasStatus ? 'border-white cursor-pointer shadow-lg' : 'border-background'}
                                 `}
                                 onClick={() => hasStatus && setIsStatusModalOpen(true)}
@@ -65,6 +79,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                                     alt={profile.nome} 
                                     className="w-full h-full object-cover"
                                 />
+                                
+                                {isOwnProfile && !hasStatus && (
+                                     <button className="absolute bottom-2 right-0 left-0 p-1 bg-black/30 w-full text-center text-xs text-white/70 hover:bg-black/50">
+                                        <Camera size={14} className="mx-auto"/>
+                                     </button>
+                                )}
                             </div>
                         </div>
 

@@ -223,7 +223,7 @@
     object-fit: cover; 
 }
 
-.overflow-hidden{
+.modal-media-center { 
     display: flex;
     justify-content: center;
     align-items: center;

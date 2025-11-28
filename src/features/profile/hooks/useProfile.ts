@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PostWithAuthor } from '@/src/features/post/components/types';
+import { StatusUserData } from '@/src/features/status/components/types';
 
 export interface UserProfile {
     id: number;
     nome: string;
     foto: string;
+    banner?: string;
     stats: {
         posts: number;
         followers: number;
         following: number;
     }
+    status?: StatusUserData | null;
 }
 
 export const useProfile = (profileId: number) => {
