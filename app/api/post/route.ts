@@ -9,61 +9,7 @@ import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { getNeo4jDriver } from '@/src/database/neo4j';
 import { saveFile } from '@/src/lib/uploadUtils'; 
 
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-backend-cpu';
-
-const cocoSsd = require('@tensorflow-models/coco-ssd');
-const jpeg = require('jpeg-js');
-const { PNG } = require('pngjs');
-
-let model: any = null;
-
-async function loadModel() {
-    if (model) return model;
-    
-    await tf.setBackend('cpu');
-    console.log("Carregando modelo IA (CPU)...");
-    
-    model = await cocoSsd.load();
-    console.log("Modelo IA carregado!");
-    return model;
-}
-
-function decodeImage(imageBuffer: Buffer, mimeType: string) {
-    let pixelData;
-    let width, height;
-
-    try {
-        if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
-            const decoded = jpeg.decode(imageBuffer, { useTArray: true });
-            pixelData = decoded.data;
-            width = decoded.width;
-            height = decoded.height;
-        } else if (mimeType === 'image/png') {
-            const decoded = PNG.sync.read(imageBuffer);
-            pixelData = decoded.data;
-            width = decoded.width;
-            height = decoded.height;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error("Erro ao decodificar imagem:", error);
-        return null;
-    }
-
-    const numChannels = 3;
-    const numPixels = width * height;
-    const values = new Int32Array(numPixels * numChannels);
-
-    for (let i = 0; i < numPixels; i++) {
-        for (let c = 0; c < numChannels; c++) {
-            values[i * numChannels + c] = pixelData[i * 4 + c];
-        }
-    }
-
-    return tf.tensor3d(values, [height, width, numChannels], 'int32');
-}
+import { Worker } from 'worker_threads';
 
 interface JwtPayload {
   id: number;
@@ -105,48 +51,70 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
-        // Lógica da IA
-        const detector = await loadModel();
-        const detectedTags = new Set<string>();
-
+        // Processa cada arquivo worker
         const savePromises = files.map(async (file) => {
             const publicUrl = await saveFile(file, 'posts', user.id);
+            let detectedTags: string[] = [];
 
-           
-           if (detector && file.type.startsWith('image/')) {
+            if (file.type.startsWith('image/')) {
                 try {
                     const arrayBuffer = await file.arrayBuffer();
                     const buffer = Buffer.from(arrayBuffer);
-                    
-                    const imageTensor = decodeImage(buffer, file.type);
-                    
-                    if (imageTensor) { 
-                        const predictions = await detector.detect(imageTensor);
+
+                    // Promise esperar o Worker terminar
+                    detectedTags = await new Promise((resolve) => {
+                        const workerPath = path.join(process.cwd(), 'src/workers/image-classifier.cjs');
                         
-                        predictions.forEach((pred: any) => {
-                            detectedTags.add(pred.class.toLowerCase()); 
+                        const worker = new Worker(workerPath, {
+                            workerData: {
+                                fileBuffer: buffer,
+                                mimeType: file.type
+                            }
                         });
 
-                        imageTensor.dispose();
+                        worker.on('message', (tags) => {
+                            resolve(tags);
+                        });
+
+                        worker.on('error', (err) => {
+                            console.error("Erro no Worker Thread:", err);
+                            resolve([]);
+                        });
+
+                        worker.on('exit', (code) => {
+                            if (code !== 0) resolve([]);
+                        });
+                    });
+
+                    if (detectedTags.length > 0) {
+                        console.log(`🤖 IA (Worker) detectou na imagem ${file.name}:`, detectedTags);
                     }
+
                 } catch (err) {
-                    console.error("Erro na detecção IA:", err);
+                    console.error("Erro ao iniciar worker:", err);
                 }
             }
 
             return {
                 url: publicUrl,
-                type: file.type 
+                type: file.type,
+                tags: detectedTags
             };
         });
 
-        const savedMediaItems = await Promise.all(savePromises);
+        const processedFiles = await Promise.all(savePromises);
         
+        const allTags = new Set<string>();
+        const mediaItems = processedFiles.map(f => {
+            if (f.tags) f.tags.forEach(t => allTags.add(t));
+            return { url: f.url, type: f.type };
+        });
+
         const newPost = new Post({
-            media: savedMediaItems,
+            media: mediaItems,
             description: description || '',
             authorId: user.id,
-            autoTags: Array.from(detectedTags) 
+            autoTags: Array.from(allTags)
         });
 
         await newPost.save();
@@ -220,11 +188,9 @@ export async function GET(request: NextRequest) {
 
                 followingIds = result.records.map(record => {
                     const idVal = record.get('id');
-
                     if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
                         return idVal.toNumber();
                     }
-                    
                     return Number(idVal);
                 });
 
@@ -235,7 +201,6 @@ export async function GET(request: NextRequest) {
             }
 
             const allowedAuthorIds = [...followingIds, user.id];
-            
             query = { authorId: { $in: allowedAuthorIds } };
         }
 
@@ -263,9 +228,7 @@ export async function GET(request: NextRequest) {
         initUsuarioModel(sequelize);
         
         const authors = await Usuario.findAll({
-            where: {
-                USU_ID: authorIds
-            },
+            where: { USU_ID: authorIds },
             attributes: ['USU_ID', 'USU_NOME', 'USU_FOTO_PERFIL']
         });
 
@@ -297,13 +260,10 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error('Erro ao buscar posts:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
-        return NextResponse.json(
-            { message: 'Erro interno ao buscar posts.', error: errorMessage }, { status: 500 }
-        );
+        return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
     }
 }
+
 
 export async function DELETE(request: NextRequest) {
     try {
@@ -332,9 +292,7 @@ export async function DELETE(request: NextRequest) {
         for (const media of post.media) {
             try {
                 const filePath = path.join(process.cwd(), 'public', media.url);
-
                 await unlink(filePath);
-
             } catch (fileError) {
                 console.warn(`Falha ao excluir arquivo do disco: ${media.url}`, fileError);
             }
@@ -353,7 +311,6 @@ export async function DELETE(request: NextRequest) {
 
         } catch(neoError) {
              console.error("Erro ao deletar post do Neo4j", neoError);
-             
         } finally {
             await session.close();
         }
@@ -362,7 +319,6 @@ export async function DELETE(request: NextRequest) {
 
     } catch (error) {
         console.error('Erro ao excluir post:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        return NextResponse.json({ message: 'Erro interno ao excluir post.', error: errorMessage }, { status: 500 });
+        return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
     }
 }
