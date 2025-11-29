@@ -1,4 +1,4 @@
-import { getNeo4jDriver } from '../database/neo4j';
+import { getNeo4jDriver } from '../database/neo4j.ts'; 
 import neo4j from 'neo4j-driver';
 
 export const recommendationService = {

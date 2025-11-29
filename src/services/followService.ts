@@ -1,4 +1,4 @@
-import { getNeo4jDriver } from '../database/neo4j';
+import { getNeo4jDriver } from '../database/neo4j.ts';
 
 export const followService = {
   // Seguir ou Deixar de seguir (Toggle)

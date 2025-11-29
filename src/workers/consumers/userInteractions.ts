@@ -1,8 +1,8 @@
 import amqp from 'amqplib';
 import dotenv from 'dotenv';
 import path from 'path';
-import { likeService } from '../../services/likeService';
-import { followService } from '../../services/followService';
+import { likeService } from '../../services/likeService.ts'; 
+import { followService } from '../../services/followService.ts';
 
 // Configuração para o Worker
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });

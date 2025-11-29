@@ -1,4 +1,4 @@
-import { getNeo4jDriver } from '../database/neo4j';
+import { getNeo4jDriver } from '../database/neo4j.ts'; 
 
 export const likeService = {
     toggleLike: async (userId: number, postId: string, action: 'LIKE' | 'UNLIKE') => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePosts } from '../hooks/usePosts';
 import { PostCard } from './PostCard';
@@ -10,17 +10,23 @@ import { PostWithAuthor } from './types';
 import { PostDetailModal } from './PostDetailModal';
 import { Button } from '@/components/ui/button';
 import { Compass } from 'lucide-react';
+import { useSocket } from '@/src/hooks/useSocket'; 
+
+import { usePostFeedSocket } from '../hooks/usePostFeedSocket';
 
 export const PostFeed: React.FC = () => {
-   const { user: loggedInUser } = useCurrentUser();
+    const { user: loggedInUser } = useCurrentUser();
+    const { socket } = useSocket(loggedInUser?.id);
+    
     const { posts: fetchedPosts, isLoading, hasMore, lastPostElementRef } = usePosts();
     const [posts, setPosts] = useState<PostWithAuthor[]>([]);
-    
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
     React.useEffect(() => {
         setPosts(fetchedPosts);
     }, [fetchedPosts]);
+
+    usePostFeedSocket(socket, setPosts, selectedPost, setSelectedPost);
 
     const handleDeleteSuccess = (postId: string) => {
         setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));

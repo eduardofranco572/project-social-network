@@ -43,16 +43,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                 { $pull: { likes: userId } },
                 { new: true } 
             );
-
             action = 'UNLIKE';
         } else {
-
             updatedPost = await Post.findByIdAndUpdate(
                 postId, 
                 { $addToSet: { likes: userId } },
                 { new: true }
             );
-
             action = 'LIKE';
         }
         
@@ -61,6 +58,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             userId,
             postId,
             action
+        });
+
+        await publishToQueue('realtime_events', {
+            event: 'update_like',
+            data: {
+                postId,
+                likes: updatedPost.likes 
+            }
         });
 
         return NextResponse.json({ 

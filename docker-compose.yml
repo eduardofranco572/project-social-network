@@ -62,6 +62,23 @@ services:
     networks:
       - app-network
 
+  # --- Socket ---
+  socket_server:
+    image: node:18
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - RABBITMQ_URI=amqp://rabbitmq:123456789@rabbitmq:5672
+    command: sh -c "npm install && npm run socket"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-network   
+
 # --- Volumes para persistir os dados ---
 volumes:
   mysql-data:

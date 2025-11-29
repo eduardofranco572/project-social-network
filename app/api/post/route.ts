@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { unlink } from 'fs/promises'; 
+import { unlink } from 'fs/promises';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import connectMongo from '@/src/database/mongo';
@@ -7,13 +7,14 @@ import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { getNeo4jDriver } from '@/src/database/neo4j';
-import { saveFile } from '@/src/lib/uploadUtils'; 
+import { saveFile } from '@/src/lib/uploadUtils';
 import { publishToQueue } from '@/src/lib/rabbitmq';
 
 interface JwtPayload {
   id: number;
   nome: string;
   email: string;
+  foto?: string;
 }
 
 async function getUserFromToken(request: NextRequest): Promise<JwtPayload | null> {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
+        // Salvar arquivos no disco
         const savePromises = files.map(async (file) => {
             const publicUrl = await saveFile(file, 'posts', user.id);
             const absolutePath = path.join(process.cwd(), 'public', publicUrl);
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
 
         await newPost.save();
 
+        // Enviar para IA
         processedFiles.forEach((file) => {
             if (file.type.startsWith('image/')) {
                 publishToQueue('image_classification', {
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
             }
         });
 
+        // Salvar no Neo4j
         try {
             await session.run(
                 `
@@ -96,8 +100,36 @@ export async function POST(request: NextRequest) {
             console.error("Erro ao salvar post no Neo4j:", neoError);
         }
 
+      const sequelize = getSequelizeInstance();
+        initUsuarioModel(sequelize);
+        
+        const dadosAtualizadosUsuario = await Usuario.findByPk(user.id, {
+            attributes: ['USU_NOME', 'USU_FOTO_PERFIL']
+        });
+
+        const postObject = newPost.toObject();
+        
+        const postParaSocket = {
+            ...postObject,
+            _id: newPost._id.toString(),
+            media: postObject.media.map((m: any) => ({
+                ...m,
+                _id: m._id ? m._id.toString() : Math.random().toString()
+            })),
+            author: {
+                id: user.id,
+                nome: dadosAtualizadosUsuario?.USU_NOME || user.nome,
+                fotoPerfil: dadosAtualizadosUsuario?.USU_FOTO_PERFIL || '/img/iconePadrao.svg'
+            }
+        };
+
+        await publishToQueue('realtime_events', {
+            event: 'new_post',
+            data: postParaSocket
+        });
+
         return NextResponse.json({
-            message: 'Post criado com sucesso! Processamento de IA iniciado.',
+            message: 'Post criado com sucesso!',
             post: newPost
         }, { status: 201 });
 
@@ -227,7 +259,6 @@ export async function GET(request: NextRequest) {
     }
 }
 
-
 export async function DELETE(request: NextRequest) {
     try {
         const user = await getUserFromToken(request);
@@ -252,6 +283,7 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ message: 'Você não tem permissão para excluir este post.' }, { status: 403 });
         }
 
+        // Apagar arquivos
         for (const media of post.media) {
             try {
                 const filePath = path.join(process.cwd(), 'public', media.url);
@@ -265,9 +297,8 @@ export async function DELETE(request: NextRequest) {
 
         const driver = getNeo4jDriver();
         const session = driver.session();
-
         try {
-             await session.run(
+            await session.run(
                 `MATCH (p:Post {id: $postId}) DETACH DELETE p`,
                 { postId: postId }
             );
@@ -277,6 +308,11 @@ export async function DELETE(request: NextRequest) {
         } finally {
             await session.close();
         }
+
+        await publishToQueue('realtime_events', {
+            event: 'delete_post',
+            data: { postId } 
+        });
 
         return NextResponse.json({ message: 'Post excluído com sucesso' }, { status: 200 });
 
