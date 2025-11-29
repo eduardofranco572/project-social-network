@@ -12,6 +12,10 @@ export async function register() {
         name: 'Image Classifier', 
         file: 'src/workers/consumers/imageProcessing.ts' 
       },
+      { 
+        name: 'User Interactions', 
+        file: 'src/workers/consumers/userInteractions.ts' 
+      },
     ];
 
     console.log('[Instrumentation] Iniciando Workers...');

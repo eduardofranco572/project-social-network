@@ -1,18 +1,14 @@
 import { NextResponse, NextRequest } from 'next/server';
 import connectMongo from '@/src/database/mongo';
 import Post from '@/src/models/post';
-import { likeService } from '@/src/services/likeService';
+import { publishToQueue } from '@/src/lib/rabbitmq'; 
 import jwt from 'jsonwebtoken';
 
 async function getUserIdFromToken(request: NextRequest): Promise<number | null> {
     const token = request.cookies.get('auth_token')?.value;
-
     if (!token) return null;
-
     const secret = process.env.JWT_SECRET;
-
     if (!secret) return null;
-
     try {
         const decoded = jwt.verify(token, secret) as any;
         return parseInt(decoded.id, 10);
@@ -42,24 +38,30 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         let updatedPost;
 
         if (hasLiked) {
-            // UNLIKE
             updatedPost = await Post.findByIdAndUpdate(
                 postId, 
                 { $pull: { likes: userId } },
                 { new: true } 
             );
+
             action = 'UNLIKE';
         } else {
-            // LIKE
+
             updatedPost = await Post.findByIdAndUpdate(
                 postId, 
                 { $addToSet: { likes: userId } },
                 { new: true }
             );
+
             action = 'LIKE';
         }
-
-        likeService.toggleLike(userId, postId, action);
+        
+        await publishToQueue('user_interactions', {
+            type: 'LIKE',
+            userId,
+            postId,
+            action
+        });
 
         return NextResponse.json({ 
             liked: action === 'LIKE',
