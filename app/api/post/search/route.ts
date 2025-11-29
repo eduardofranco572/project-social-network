@@ -5,7 +5,7 @@ import Post from '@/src/models/post';
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const query = searchParams.get('q');
+        let query = searchParams.get('q'); 
 
         if (!query || query.trim().length === 0) {
             return NextResponse.json([], { status: 200 });
@@ -13,13 +13,37 @@ export async function GET(request: NextRequest) {
 
         await connectMongo();
 
+        const translations: Record<string, string> = {
+            'gato': 'cat',
+            'gatinho': 'cat',
+            'cachorro': 'dog',
+            'cao': 'dog',
+            'cão': 'dog',
+            'carro': 'car',
+            'comida': 'food',
+            'pessoa': 'person',
+            'homem': 'person',
+            'mulher': 'person',
+            'praia': 'beach',
+            'computador': 'laptop',
+            'celular': 'cell phone'
+        };
+
+        const lowerQuery = query.toLowerCase();
+
+        if (translations[lowerQuery]) {
+            query = `${query} ${translations[lowerQuery]}`;
+        }
+
         const posts = await Post.find(
             { $text: { $search: query } },
             { score: { $meta: "textScore" } }
+        )
+        .sort({ score: { $meta: "textScore" } })
+        .limit(20)
+        .lean();
 
-        ).sort({ score: { $meta: "textScore" } }).limit(20).lean();
-
-        const formattedPosts = posts.map(p => ({
+        const formattedPosts = posts.map((p: any) => ({
             _id: p._id.toString(),
             media: p.media[0], 
             description: p.description

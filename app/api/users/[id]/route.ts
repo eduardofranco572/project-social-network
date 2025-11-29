@@ -4,6 +4,7 @@ import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import connectMongo from '@/src/database/mongo';
 import Post from '@/src/models/post';
 import Status from '@/src/models/status';
+import bcrypt from 'bcryptjs';
 
 import { saveFile } from '@/src/lib/uploadUtils';
 
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         
         const user = await Usuario.findOne({
             where: { USU_ID: userId },
-            attributes: ['USU_ID', 'USU_NOME', 'USU_FOTO_PERFIL', 'USU_BANNER']
+            attributes: ['USU_ID', 'USU_NOME', 'USU_FOTO_PERFIL', 'USU_BANNER', 'USU_LOGIN']
         });
 
         if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         return NextResponse.json({
             id: user.USU_ID,
             nome: user.USU_NOME,
+            email: user.USU_LOGIN,
             foto: user.USU_FOTO_PERFIL || '/img/iconePadrao.svg',
             banner: user.USU_BANNER,
             stats: { posts: postsCount, followers: 0, following: 0 },
@@ -65,11 +67,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     try {
         const formData = await request.formData();
-        const bannerFile = formData.get('banner') as File | null;
 
-        if (!bannerFile) {
-            return NextResponse.json({ message: 'Nenhuma imagem enviada' }, { status: 400 });
-        }
+        const bannerFile = formData.get('banner') as File | null;
+        const profileFile = formData.get('foto') as File | null;
+        const nome = formData.get('nome') as string | null; 
+        const novaSenha = formData.get('senha') as string | null;
 
         const sequelize = getSequelizeInstance();
         initUsuarioModel(sequelize);
@@ -77,18 +79,40 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const user = await Usuario.findByPk(userId);
         if (!user) return NextResponse.json({ message: 'Usuário não encontrado' }, { status: 404 });
 
-        const bannerUrl = await saveFile(bannerFile, 'profiles', userId);
+        if (bannerFile) {
+            const bannerUrl = await saveFile(bannerFile, 'profiles', userId);
+            user.USU_BANNER = bannerUrl;
+        }
 
-        user.USU_BANNER = bannerUrl;
+        if (profileFile) {
+            const fotoUrl = await saveFile(profileFile, 'profiles', userId);
+            user.USU_FOTO_PERFIL = fotoUrl;
+        }
+
+        if (nome) user.USU_NOME = nome;
+
+        if (novaSenha && novaSenha.trim().length > 0) {
+            if (novaSenha.length < 6) {
+                return NextResponse.json({ message: 'Senha muito curta' }, { status: 400 });
+            }
+
+            const hashedPassword = await bcrypt.hash(novaSenha, 10);
+            user.USU_SENHA = hashedPassword;
+        }
+
         await user.save();
 
         return NextResponse.json({ 
-            message: 'Banner atualizado', 
-            bannerUrl 
+            message: 'Perfil atualizado com sucesso',
+            user: {
+                nome: user.USU_NOME,
+                foto: user.USU_FOTO_PERFIL,
+                banner: user.USU_BANNER
+            }
         }, { status: 200 });
 
     } catch (error) {
-        console.error("Erro ao atualizar banner:", error);
+        console.error("Erro ao atualizar perfil:", error);
         return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
     }
 }

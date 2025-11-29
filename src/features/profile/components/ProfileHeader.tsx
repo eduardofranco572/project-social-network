@@ -6,6 +6,8 @@ import { useFollow } from '@/src/hooks/useFollow';
 import StatusViewerModal from '@/src/features/status/components/StatusViewerModal';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
 
+import SettingsModal from '@/src/features/settings/components/SettingsModal';
+
 interface ProfileHeaderProps {
     profile: UserProfile;
     isOwnProfile: boolean;
@@ -20,6 +22,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
 
     const userStatus = profile.status || null; 
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -95,7 +99,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
 
                             <div className="flex gap-3">
                                 {isOwnProfile ? (
-                                    <Button variant="outline" className="gap-2">
+                                    <Button 
+                                        variant="outline" 
+                                        className="gap-2"
+                                        onClick={() => setIsSettingsOpen(true)}
+                                    >
                                         <Settings size={16} /> Editar Perfil
                                     </Button>
                                 ) : (
@@ -109,6 +117,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                                                 isFollowing ? <><UserCheck size={16} /> Seguindo</> : <><UserPlus size={16} /> Seguir</>
                                             )}
                                         </Button>
+
                                         <Button variant="secondary">Mensagem</Button>
                                     </>
                                 )}
@@ -125,6 +134,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                     onClose={() => setIsStatusModalOpen(false)} 
                     loggedInUser={loggedInUser}
                 />
+            )}
+
+            {isSettingsOpen && (
+                <SettingsModal onClose={() => setIsSettingsOpen(false)} />
             )}
         </>
     );

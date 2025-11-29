@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import AvatarEditor from 'react-avatar-editor';
-import { IoCloseOutline } from "react-icons/io5";
+import { X, ZoomIn } from "lucide-react";
+import { Slider } from '@/components/ui/slider'; 
 
-import { Slider } from '@/components/ui/slider';
+import '@/app/css/profile-editor.css'; 
 
 interface ProfileImageEditorProps {
     image: string;
@@ -16,53 +17,73 @@ const ProfileImageEditor: React.FC<ProfileImageEditorProps> = ({ image, onSave, 
     const editorRef = useRef<AvatarEditor>(null);
 
     const handleSaveImage = useCallback(() => {
-    if (editorRef.current) {
-        const canvas = editorRef.current.getImageScaledToCanvas();
-        canvas.toBlob((blob) => {
-        if (blob) {
-            const file = new File([blob], "croppedImage.png", { type: blob.type });
-            onSave(file);
+        if (editorRef.current) {
+            const canvas = editorRef.current.getImageScaledToCanvas();
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const file = new File([blob], "profile_edited.jpg", { type: "image/jpeg" });
+                    onSave(file);
+                }
+            }, 'image/jpeg');
         }
-        }, 'image/png');
-    }
     }, [onSave]);
 
-    const modal = (
+    const modalContent = (
         <section className="cardEditImage">
             <div className='edtImage'>
                 <div className="closed" onClick={onCancel}>
-                    <IoCloseOutline size={24} />
+                    <X size={24} />
                 </div>
 
-                <h1>Editar imagem</h1>
+                <h1 className="text-lg font-bold mb-4 text-white">Editar Foto</h1>
+                
                 <div className="imageforedit">
                     <AvatarEditor
                         ref={editorRef}
                         image={image}
-                        width={300} 
-                        height={300}
-                        color={[28, 28, 28, 0.6]} 
+                        width={250} 
+                        height={250}
+                        border={20}
+                        color={[28, 28, 28, 0.8]} 
                         scale={scale}
-                        borderRadius={150}
+                        rotate={0}
+                        borderRadius={125} 
                     />
                 </div>
 
-                <div className="w-full max-w-xs px-4 sliderzoom">
+                <div className="w-full max-w-xs px-4 sliderzoom flex items-center gap-3 mt-4">
+                    <ZoomIn size={20} className="text-zinc-400"/>
                     <Slider
                         min={1}
-                        max={2} 
-                        step={0.01}
+                        max={3} 
+                        step={0.1}
                         value={[scale]}
                         onValueChange={(value) => setScale(value[0])} 
+                        className="flex-1"
                     />
                 </div>
 
-                <button className='brtsaveedimg mt-4' onClick={handleSaveImage}>Salvar imagem</button>
+                <div className="flex gap-3 mt-6 w-full">
+                    <button 
+                        className='flex-1 py-2.5 rounded-md text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors border border-zinc-700' 
+                        onClick={onCancel}
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        className='flex-1 py-2.5 rounded-md text-sm font-medium bg-white text-black hover:bg-zinc-200 transition-colors font-bold' 
+                        onClick={handleSaveImage}
+                    >
+                        Salvar
+                    </button>
+                </div>
             </div>
         </section>
     );
 
-    return createPortal(modal, document.body);
+    if (typeof document === 'undefined') return null;
+    
+    return createPortal(modalContent, document.body);
 };
 
 export default ProfileImageEditor;
