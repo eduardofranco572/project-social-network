@@ -7,6 +7,7 @@ import Status from '@/src/models/status';
 import bcrypt from 'bcryptjs';
 
 import { saveFile } from '@/src/lib/uploadUtils';
+import { publishToQueue } from '@/src/lib/rabbitmq';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
     const userId = parseInt(params.id);
@@ -101,6 +102,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         }
 
         await user.save();
+        
+        await publishToQueue('realtime_events', {
+            event: 'user_updated',
+            roomId: userId, 
+            data: {
+                id: user.USU_ID,
+                nome: user.USU_NOME,
+                foto: user.USU_FOTO_PERFIL,
+                banner: user.USU_BANNER
+            }
+        });
 
         return NextResponse.json({ 
             message: 'Perfil atualizado com sucesso',

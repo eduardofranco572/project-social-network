@@ -5,6 +5,8 @@ import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import getSequelizeInstance from '@/src/database/database';
 import jwt from 'jsonwebtoken';
 
+import { publishToQueue } from '@/src/lib/rabbitmq';
+
 // Helper para pegar usuário logado
 async function getUserFromToken(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value;
@@ -100,9 +102,24 @@ export async function POST(request: NextRequest) {
             parentId: parentId || null 
         });
 
+        const commentWithUser = {
+            ...newComment.toObject(),
+            user: {
+                id: user.id,
+                nome: user.nome,
+                foto: user.foto || '/img/iconePadrao.svg'
+            }
+        };
+
+        await publishToQueue('realtime_events', {
+            event: 'new_comment',
+            data: commentWithUser
+        });
+
         return NextResponse.json(newComment, { status: 201 });
 
     } catch (error) {
+        console.error(error);
         return NextResponse.json({ message: 'Erro ao comentar' }, { status: 500 });
     }
 }
@@ -124,15 +141,19 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ message: 'Comentário não encontrado' }, { status: 404 });
         }
 
-        // Verifica se é o dono do comentario
         if (comment.userId !== user.id) {
             return NextResponse.json({ message: 'Sem permissão para excluir' }, { status: 403 });
         }
 
-        await Comment.findByIdAndDelete(commentId);
+        const postId = comment.postId;
 
-        // Excluir respostas alinhadas
+        await Comment.findByIdAndDelete(commentId);
         await Comment.deleteMany({ parentId: commentId });
+
+        await publishToQueue('realtime_events', {
+            event: 'delete_comment',
+            data: { commentId, postId } 
+        });
 
         return NextResponse.json({ message: 'Comentário excluído' }, { status: 200 });
 

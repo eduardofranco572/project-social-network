@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useSocket } from './useSocket';
 
 interface LoggedInUser {
   id: number;
@@ -12,6 +13,8 @@ interface LoggedInUser {
 export const useCurrentUser = () => {
   const [user, setUser] = useState<LoggedInUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const { socket } = useSocket(user?.id);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -35,6 +38,27 @@ export const useCurrentUser = () => {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleUserUpdate = (updatedData: any) => {
+      setUser((prevUser) => {
+        if (!prevUser) return null;
+        return {
+            ...prevUser,
+            nome: updatedData.nome || prevUser.nome,
+            foto: updatedData.foto || prevUser.foto
+        };
+      });
+    };
+
+    socket.on('user_updated', handleUserUpdate);
+
+    return () => {
+      socket.off('user_updated', handleUserUpdate);
+    };
+  }, [socket, user]);
 
   return { user, isLoading };
 };

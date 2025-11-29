@@ -9,7 +9,7 @@ import { PostSkeleton } from './PostSkeleton';
 import { PostWithAuthor } from './types';
 import { PostDetailModal } from './PostDetailModal';
 import { Button } from '@/components/ui/button';
-import { Compass } from 'lucide-react';
+import { Compass, ArrowUpCircle } from 'lucide-react'; 
 import { useSocket } from '@/src/hooks/useSocket'; 
 
 import { usePostFeedSocket } from '../hooks/usePostFeedSocket';
@@ -20,13 +20,41 @@ export const PostFeed: React.FC = () => {
     
     const { posts: fetchedPosts, isLoading, hasMore, lastPostElementRef } = usePosts();
     const [posts, setPosts] = useState<PostWithAuthor[]>([]);
+    const [pendingPosts, setPendingPosts] = useState<PostWithAuthor[]>([]); 
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
+    const [followingIds, setFollowingIds] = useState<number[]>([]); 
 
-    React.useEffect(() => {
+    useEffect(() => {
         setPosts(fetchedPosts);
     }, [fetchedPosts]);
 
-    usePostFeedSocket(socket, setPosts, selectedPost, setSelectedPost);
+    useEffect(() => {
+        if (!loggedInUser) return;
+        fetch('/api/users/me/following')
+            .then(res => res.json())
+            .then(ids => setFollowingIds(ids))
+            .catch(err => console.error("Erro ao buscar followingIds", err));
+    }, [loggedInUser]);
+
+    usePostFeedSocket(
+        socket, 
+        setPosts, 
+        setPendingPosts, 
+        followingIds, 
+        loggedInUser?.id, 
+        selectedPost, 
+        setSelectedPost
+    );
+
+    const handleShowNewPosts = () => {
+        setPosts(prev => [...pendingPosts, ...prev]);
+        setPendingPosts([]);
+        
+        const mainContainer = document.querySelector('main');
+        if (mainContainer) {
+            mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
 
     const handleDeleteSuccess = (postId: string) => {
         setPosts(prevPosts => prevPosts.filter(p => p._id !== postId));
@@ -73,7 +101,19 @@ export const PostFeed: React.FC = () => {
     }
 
     return (
-        <div className="w-full py-6">
+        <div className="w-full py-6 relative">
+            {pendingPosts.length > 0 && (
+                <div className="sticky top-4 z-30 flex justify-center mb-4 animate-in slide-in-from-top-2 duration-300">
+                    <button 
+                        onClick={handleShowNewPosts}
+                        className="bg-[#1c1c1c] hover:bg-[#262626] text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-semibold transition-all hover:scale-105 border border-zinc-800"
+                    >
+                        <ArrowUpCircle size={18} />
+                        Novas publicações ({pendingPosts.length})
+                    </button>
+                </div>
+            )}
+
             {posts.map((post, index) => {
                 const isLast = posts.length === index + 1;
                 return (
