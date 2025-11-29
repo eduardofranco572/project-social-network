@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
+    instrumentationHook: true,
     serverComponentsExternalPackages: [
       'mysql2', 
       'sequelize', 
       '@tensorflow/tfjs-node',
-      '@mapbox/node-pre-gyp' 
+      '@mapbox/node-pre-gyp',
+      'amqplib'
     ],
   },
 

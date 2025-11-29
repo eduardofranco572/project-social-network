@@ -6,6 +6,7 @@
       "dom.iterable",
       "esnext"
     ],
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [

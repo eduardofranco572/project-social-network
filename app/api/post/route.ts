@@ -8,8 +8,7 @@ import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { getNeo4jDriver } from '@/src/database/neo4j';
 import { saveFile } from '@/src/lib/uploadUtils'; 
-
-import { Worker } from 'worker_threads';
+import { publishToQueue } from '@/src/lib/rabbitmq';
 
 interface JwtPayload {
   id: number;
@@ -51,73 +50,39 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Nenhum arquivo enviado.' }, { status: 400 });
         }
 
-        // Processa cada arquivo worker
         const savePromises = files.map(async (file) => {
             const publicUrl = await saveFile(file, 'posts', user.id);
-            let detectedTags: string[] = [];
-
-            if (file.type.startsWith('image/')) {
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const buffer = Buffer.from(arrayBuffer);
-
-                    // Promise esperar o Worker terminar
-                    detectedTags = await new Promise((resolve) => {
-                        const workerPath = path.join(process.cwd(), 'src/workers/image-classifier.cjs');
-                        
-                        const worker = new Worker(workerPath, {
-                            workerData: {
-                                fileBuffer: buffer,
-                                mimeType: file.type
-                            }
-                        });
-
-                        worker.on('message', (tags) => {
-                            resolve(tags);
-                        });
-
-                        worker.on('error', (err) => {
-                            console.error("Erro no Worker Thread:", err);
-                            resolve([]);
-                        });
-
-                        worker.on('exit', (code) => {
-                            if (code !== 0) resolve([]);
-                        });
-                    });
-
-                    if (detectedTags.length > 0) {
-                        console.log(`🤖 IA (Worker) detectou na imagem ${file.name}:`, detectedTags);
-                    }
-
-                } catch (err) {
-                    console.error("Erro ao iniciar worker:", err);
-                }
-            }
+            const absolutePath = path.join(process.cwd(), 'public', publicUrl);
 
             return {
                 url: publicUrl,
                 type: file.type,
-                tags: detectedTags
+                absolutePath: absolutePath
             };
         });
 
         const processedFiles = await Promise.all(savePromises);
         
-        const allTags = new Set<string>();
-        const mediaItems = processedFiles.map(f => {
-            if (f.tags) f.tags.forEach(t => allTags.add(t));
-            return { url: f.url, type: f.type };
-        });
+        const mediaItems = processedFiles.map(f => ({ url: f.url, type: f.type }));
 
         const newPost = new Post({
             media: mediaItems,
             description: description || '',
             authorId: user.id,
-            autoTags: Array.from(allTags)
+            autoTags: []
         });
 
         await newPost.save();
+
+        processedFiles.forEach((file) => {
+            if (file.type.startsWith('image/')) {
+                publishToQueue('image_classification', {
+                    postId: newPost._id.toString(),
+                    filePath: file.absolutePath,
+                    mimeType: file.type
+                });
+            }
+        });
 
         try {
             await session.run(
@@ -132,16 +97,14 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({
-            message: 'Post criado com sucesso!',
+            message: 'Post criado com sucesso! Processamento de IA iniciado.',
             post: newPost
         }, { status: 201 });
 
     } catch (error) {
         console.error('Erro na rota API de post:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-
         return NextResponse.json(
-            { message: 'Erro interno ao criar post.', error: errorMessage }, { status: 500 }
+            { message: 'Erro interno ao criar post.' }, { status: 500 }
         );
 
     } finally {
