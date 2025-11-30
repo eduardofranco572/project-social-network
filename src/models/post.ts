@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, model, Model } from 'mongoose';
 
 interface IMediaItem {
     url: string;  
@@ -10,11 +10,12 @@ interface IPost {
     description?: string;
     authorId: number;
     likes: number[];
+    savedBy: number[];
     autoTags: string[];
     createdAt: Date;
 }
 
-const PostSchema = new mongoose.Schema<IPost>({
+const PostSchema = new Schema<IPost>({
     media: [
         {
             url: { type: String, required: true },
@@ -25,13 +26,15 @@ const PostSchema = new mongoose.Schema<IPost>({
     description: { type: String },
     authorId: { type: Number, required: true },
     likes: { type: [Number], default: [] },
+    savedBy: { type: [Number], default: [] },
     autoTags: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now },
 });
 
 PostSchema.index({ description: 'text', autoTags: 'text' });
 PostSchema.index({ authorId: 1, createdAt: -1 });
+PostSchema.index({ savedBy: 1 });
 
-const Post = (mongoose.models.Post as mongoose.Model<IPost>) || mongoose.model<IPost>('Post', PostSchema);
+const Post = (mongoose.models.Post as Model<IPost>) || model<IPost>('Post', PostSchema);
 
 export default Post;

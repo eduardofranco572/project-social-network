@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { usePostCard } from '../hooks/usePostCard';
 import { usePostMedia } from '../hooks/usePostMedia';
 import { useLike } from '../hooks/useLike';
+import { useSave } from '../hooks/useSave';
 
 import '@/app/css/post-card.css';
 
@@ -126,6 +127,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
         e.preventDefault();
         api?.scrollNext();
     }, [api]);
+
+    const { isSaved, toggleSave } = useSave(
+        post._id, 
+        post.savedBy || [],
+        loggedInUser?.id
+    );
 
     return (
         <article ref={cardRef} className="w-full max-w-md mx-auto bg-background border border-border rounded-lg mb-6">
@@ -275,9 +282,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, loggedInUser, onDelete
                     <Button 
                         variant="ghost" 
                         size="icon"
+                        onClick={toggleSave}
                         className="text-foreground hover:text-muted-foreground h-10 w-10 [&_svg]:size-6 ml-auto"
                     >
-                        <Bookmark />
+                        <Bookmark 
+                            className={cn(
+                                "transition-all duration-300", 
+                                isSaved ? "fill-white text-white scale-110" : ""
+                            )} 
+                        />
                     </Button>
                 </div>
             </footer>

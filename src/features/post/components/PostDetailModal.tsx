@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { DetailMedia } from './PostDetail/DetailMedia';
 import { CommentItem } from './PostDetail/CommentItem';
 
+import { useSave } from '../hooks/useSave';
+
 import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
 
 interface PostDetailModalProps {
@@ -35,6 +37,12 @@ interface PostDetailModalProps {
 
 export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedInUser, onClose, isPage = false }) => {
     const [mounted, setMounted] = useState(false);
+    
+    const { isSaved, toggleSave } = useSave(
+        post._id, 
+        post.savedBy || [], 
+        loggedInUser?.id
+    );
 
     const {
         comments,
@@ -249,9 +257,15 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({ post, loggedIn
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
+                                onClick={toggleSave}
                                 className="h-8 w-8 hover:bg-transparent p-0 text-white hover:text-neutral-300"
                             >
-                                <Bookmark className="w-6 h-6" />
+                                <Bookmark 
+                                    className={cn(
+                                        "w-6 h-6 transition-all duration-200",
+                                        isSaved ? "fill-white text-white" : ""
+                                    )} 
+                                />
                             </Button>
                         </div>
 

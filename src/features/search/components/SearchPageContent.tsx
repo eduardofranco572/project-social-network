@@ -6,6 +6,10 @@ import { Search, User, ChevronRight, Loader2, Grid3X3, Users } from 'lucide-reac
 import { Input } from '@/components/ui/input';
 import { cn } from "@/lib/utils";
 
+import { PostDetailModal } from '@/src/features/post/components/PostDetailModal';
+import { useCurrentUser } from '@/src/hooks/useCurrentUser';
+import { PostWithAuthor } from '@/src/features/post/components/types';
+
 interface SearchUser {
     id: number;
     nome: string;
@@ -15,8 +19,16 @@ interface SearchUser {
 
 interface SearchPost {
     _id: string;
-    media: { url: string; type: string };
+    media: { url: string; type: string }[]; 
     description?: string;
+    likes: number[];
+    savedBy: number[];
+    author: {
+        id: number;
+        nome: string;
+        fotoPerfil: string;
+    };
+    createdAt: string;
 }
 
 type SearchTab = 'users' | 'posts';
@@ -28,6 +40,9 @@ export const SearchPageContent: React.FC = () => {
     const [userResults, setUserResults] = useState<SearchUser[]>([]);
     const [postResults, setPostResults] = useState<SearchPost[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
+    const { user: loggedInUser } = useCurrentUser();
 
     useEffect(() => {
         if (searchTerm.trim().length === 0) {
@@ -169,18 +184,22 @@ export const SearchPageContent: React.FC = () => {
                         {postResults.length > 0 ? (
                             <div className="grid grid-cols-3 gap-1">
                                 {postResults.map((post) => (
-                                    <Link key={post._id} href={`/p/${post._id}`} className="aspect-square relative group overflow-hidden bg-zinc-900 cursor-pointer">
-                                        {post.media.type.startsWith('video/') ? (
-                                            <video src={post.media.url} className="w-full h-full object-cover" />
+                                    <div 
+                                        key={post._id} 
+                                        onClick={() => setSelectedPost(post as any)} 
+                                        className="aspect-square relative group overflow-hidden bg-zinc-900 cursor-pointer"
+                                    >
+                                        {post.media && post.media.length > 0 && post.media[0].type.startsWith('video/') ? (
+                                            <video src={post.media[0].url} className="w-full h-full object-cover" />
                                         ) : (
                                             <img 
-                                                src={post.media.url} 
+                                                src={post.media && post.media.length > 0 ? post.media[0].url : ''} 
                                                 alt="Resultado" 
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
                                             />
                                         )}
                                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         ) : (
@@ -200,6 +219,14 @@ export const SearchPageContent: React.FC = () => {
                             {activeTab === 'users' ? "Busque por amigos..." : "Busque por temas (ex: gato, carro)..."}
                         </p>
                     </div>
+                )}
+
+                {selectedPost && (
+                    <PostDetailModal 
+                        post={selectedPost}
+                        loggedInUser={loggedInUser}
+                        onClose={() => setSelectedPost(null)}
+                    />
                 )}
             </div>
         </div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react'; 
 import { Button } from '@/components/ui/button';
-import { Settings, UserPlus, UserCheck, Camera, Loader2, Image as ImageIcon } from 'lucide-react'; 
+import { Settings, UserPlus, UserCheck, Camera, Loader2, Image as ImageIcon, Bookmark } from 'lucide-react'; 
 import { UserProfile } from '../hooks/useProfile';
 import { useFollow } from '@/src/hooks/useFollow'; 
 import StatusViewerModal from '@/src/features/status/components/StatusViewerModal';
 import { useCurrentUser } from '@/src/hooks/useCurrentUser';
+
+import { SavedPostsModal } from './SavedPostsModal';
 
 import SettingsModal from '@/src/features/settings/components/SettingsModal';
 
@@ -24,6 +26,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
 
     const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -99,13 +103,24 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
 
                             <div className="flex gap-3">
                                 {isOwnProfile ? (
-                                    <Button 
-                                        variant="outline" 
-                                        className="gap-2"
-                                        onClick={() => setIsSettingsOpen(true)}
-                                    >
-                                        <Settings size={16} /> Editar Perfil
-                                    </Button>
+                                    <>
+                                        <Button 
+                                            variant="secondary" 
+                                            size="icon"
+                                            onClick={() => setIsSavedModalOpen(true)}
+                                            title="Ver itens salvos"
+                                        >
+                                            <Bookmark size={20} />
+                                        </Button>
+
+                                        <Button 
+                                            variant="outline" 
+                                            className="gap-2"
+                                            onClick={() => setIsSettingsOpen(true)}
+                                        >
+                                            <Settings size={16} /> Editar Perfil
+                                        </Button>
+                                    </>
                                 ) : (
                                     <>
                                         <Button 
@@ -138,6 +153,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
 
             {isSettingsOpen && (
                 <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+            )}
+
+            {isSavedModalOpen && (
+                <SavedPostsModal 
+                    userId={profile.id} 
+                    onClose={() => setIsSavedModalOpen(false)} 
+                />
             )}
         </>
     );

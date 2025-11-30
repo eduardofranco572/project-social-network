@@ -25,4 +25,5 @@ export interface PostWithAuthor {
     likes: number[];
     createdAt: string;
     author: PostAuthor;
+    savedBy?: number[];
 }
