@@ -1,58 +1,127 @@
-# Social Network
+# Social Network Project
 
-O Projeto de uma aplicação web de um rede social. Realizado para trabalho final das diciplinas de laboratório de banco de dados e de programação web.
+Uma aplicação de rede social completa e moderna, desenvolvida com foco em escalabilidade, experiência do usuário e uma arquitetura de backend robusta utilizando persistência poliglota e processamento assíncrono.
+
+## 🖥️ Visão Geral do Frontend
+
+A interface da aplicação foi construída com diversas tecnologias modernas e pensando em performance, escalabilidade e responsividade para experiência do usuário, contando com sistema de login e cadastro, tela principal que contêm um menu de navegação e o feed que terá os status e posts dos seus seguidores o visual bem baseado nas redes sociais existente o foco do projeto era treino e aprendizagem não inovação. Também contando com tela de perfil, de pesquisa por imagem ou por contas, um sistema de links de post podendo abrir o modal do post apenas com o link dele igual mento para o perfil do usuário, e um tela de explorar com diversos postes novos. O sistema conta com sistema de recomendação, uma IA para identificação imagens, e diversos recursos pensando em performance.
+
+### Principais Funcionalidades da Interface:
+* **Feed Infinito:** Carregamento dinâmico de postagens conforme o usuário rola a página.
+* **Stories (Status):** Visualizador de status imersivo com navegação automática e suporte a vídeos e imagens, similar ao Instagram/WhatsApp.
+* **Interações em Tempo Real:** Curtidas, comentários e notificações são refletidos instantaneamente na tela.
+* **Modais Interativos:** Criação de posts, visualização de detalhes e configurações abrem em sobreposição, mantendo o contexto da navegação.
+* **Design Responsivo:** Layout adaptável construído com **Tailwind CSS**, garantindo acessibilidade em desktops e dispositivos móveis.
+* **Componentes Reutilizáveis:** Interface construída com a biblioteca **Shadcn/ui**, garantindo consistência visual e acessibilidade.
+
+### Galeria de Telas
+
+| Home & Feed | Explorar |
+|:---:|:---:|
+| ![Home](./telas/home.jpeg) | ![Explorar](./telas/explorar.jpeg) |
+
+| Perfil do Usuário | Visualização de Post |
+|:---:|:---:|
+| ![Perfil](./telas/perfil.jpeg) | ![Modal Post](./telas/modal-post.jpeg) |
+
+| Pesquisa de Usuários | Pesquisa por Imagens |
+|:---:|:---:|
+| ![Pesquisa Nome](./telas/pesquisa-nome.jpeg) | ![Pesquisa Imagem](./telas/pesquisa-img.jpeg) |
+
+| Criando Conteúdo | Visualizando Status |
+|:---:|:---:|
+| ![Postando](./telas/postando.jpeg) | ![Status](./telas/status.jpeg) |
+
+---
+
+## ⚙️ Arquitetura Técnica do Backend
+
+O backend deste projeto se destaca pela implementação de **Persistência Poliglota** e uma arquitetura orientada a eventos, garantindo que cada tipo de dado seja armazenado na tecnologia mais adequada para sua finalidade.
+
+### 1. Persistência de Dados (3 Bancos de Dados)
+A aplicação orquestra três bancos de dados distintos simultaneamente:
+
+* **MySQL (Relacional):** Utilizado via **Sequelize** para dados estruturados e críticos, como a autenticação de usuários (Login/Cadastro) e informações básicas de perfil. Garante a integridade ACID das contas.
+* **MongoDB (Documento):** Utilizado via **Mongoose** para armazenar dados volumosos e semi-estruturados, como o conteúdo das postagens, comentários e o sistema de Status. Ideal para a flexibilidade de mídia e leitura rápida do feed.
+* **Neo4j (Grafo):** Utilizado para mapear as complexas relações sociais. O sistema de "Seguir/Seguindo" e o motor de recomendações ("Pessoas que você talvez conheça") são processados aqui, aproveitando a eficiência de grafos para queries de relacionamento.
+
+### 2. Processamento Assíncrono e Filas (RabbitMQ)
+Para não bloquear a experiência do usuário e garantir performance, operações pesadas são delegadas para "Workers" através de filas de mensagens com **RabbitMQ**.
+
+* **Worker de IA (TensorFlow.js):** Ao fazer upload de uma imagem, ela é enviada para uma fila. Um worker consome essa mensagem e utiliza o modelo `coco-ssd` para analisar a imagem e gerar tags automáticas (ex: "gato", "pessoa", "carro") para o sistema de busca.
+* **Worker de Sincronização:** Garante a consistência eventual entre o MySQL e o MongoDB. Se um usuário altera a foto de perfil no MySQL, o evento é propagado para atualizar a foto nos posts antigos armazenados no MongoDB.
+* **Worker de Interações:** Processa likes e follows de forma desacoplada para evitar sobrecarga no banco principal.
+
+### 3. Comunicação em Tempo Real (Socket.IO)
+Um servidor dedicado de WebSocket escuta eventos do RabbitMQ e notifica o frontend instantaneamente. Isso permite que, quando um usuário faça um post ou comentário, outros usuários conectados recebam a atualização sem precisar recarregar a página.
+
+---
 
 ## 🛠️ Tecnologias Utilizadas
 
-O projeto foi construído com uma stack de tecnologias modernas e robustas, tanto no backend como no frontend.
+### Stack Principal
+* **Frontend:** React, Next.js, TypeScript, Tailwind CSS, Shadcn/ui, Lucide React.
+* **Backend:** Node.js, Next.js API Routes.
+* **AI:** TensorFlow.js (Classificação de Imagens).
 
-### Backend
--   **MySQL** - Para armazenamento e gerenciamento dos dados da aplicação.
--   **NodeJs** - Como ambiente de execução do lado do servidor, permitindo o uso de JavaScript no backend.
--   **bcryptjs** - Para a criptografia segura (hashing) de senhas dos usuários no momento do cadastro e login.
--   **sequelize** - Como ORM (Object-Relational Mapper) para facilitar a interação e manipulação do banco de dados MySQL com código JavaScript.
--   **socket.io** - Para habilitar a comunicação em tempo real (via WebSockets).
+### Infraestrutura
+* **MySQL** (Dados de Usuário)
+* **MongoDB** (Posts e Mídia)
+* **Neo4j** (Grafo Social)
+* **RabbitMQ** (Mensageria e Filas)
+* **Docker & Docker Compose** (Orquestração de Containers)
+* **Socket.IO** (Real-time)
 
-### Frontend
--   **ReactJS** - Como biblioteca base para a construção de interfaces de usuário e componentes interativos.
--   **NextJS** - Como framework principal do projeto, gerenciando o roteamento, a renderização de componentes e a criação das rotas de API.
--   **tailwindcss** - Para estilização rápida e responsiva da interface, utilizando uma abordagem de classes utilitárias.
--   **ShadcnJs** - Como biblioteca de componentes reutilizáveis, acessíveis e customizáveis para a construção da UI.
+---
 
-### Ferramentas Adicionais
--   **Git & GitHub:** Para controle de versões e colaboração.
--   **Postman:** Plataforma colaborativa para testar e documentar APIs.
--   **VSCode:** IDE para o desenvolvimento.
-  
 ## 🚀 Como Executar o Projeto
 
-Para executar o projeto no seu ambiente local, siga estes passos:
+Este projeto utiliza **Docker** para subir toda a infraestrutura necessária (bancos de dados e filas). Siga os passos abaixo:
 
-1.  **Clonar o Repositório:**
+### Pré-requisitos
+* Node.js instalado (v18+)
+* Docker e Docker Compose instalados
+
+### Passo a Passo
+
+1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/eduardofranco572/project-social-network.git
-    cd chat
+    git clone [https://github.com/eduardofranco572/project-social-network.git](https://github.com/eduardofranco572/project-social-network.git)
+    cd project-social-network
     ```
 
-2.  **Configurar a Base de Dados:**
-    -   Certifique-se de que tem uma instância do MySQL.
-    -   Crie uma base de dados (ex: `chat_db`).
-    -   Crie o arquivo `.env` com as suas credenciais de acesso.
+2.  **Configure as variáveis de ambiente:**
+    Duplique o arquivo `.env.example`, renomeie para `.env` e preencha conforme necessário (as configurações padrão do Docker já estão sugeridas no arquivo).
 
-3.  **Executar a Aplicação:**
-    -   Pode executar a aplicação use esses dois comando no terminadl dentro da pasta chat!:
-    -   para criar as tabelas do banco.
-        ```bash
-        npm run sync-db
-        ```
-      -   para rodar na web a aplicação
-      - 
-        ```bash
-        npm run dev
-        ```
+3.  **Suba a infraestrutura (Bancos e RabbitMQ):**
+    Execute o comando abaixo para baixar as imagens e iniciar os containers do MySQL, Mongo, Neo4j, RabbitMQ e o Servidor de Socket:
+    ```bash
+    docker-compose up -d
+    ```
+    *Aguarde alguns instantes para que todos os serviços (especialmente o MySQL e Neo4j) estejam prontos.*
+
+4.  **Instale as dependências do projeto:**
+    ```bash
+    npm install
+    ```
+
+5.  **Sincronize o Banco de Dados (MySQL):**
+    Este comando criará as tabelas necessárias no MySQL:
+    ```bash
+    npm run sync-db
+    ```
+
+6.  **Inicie a Aplicação (Frontend e API):**
+    ```bash
+    npm run dev
+    ```
+
+Acesse a aplicação em: `http://localhost:3000`
+
+---
 
 # Integrantes da dupla:
-- Eduardo Franco Seco (Fuill-Stack) <br>
+- Eduardo Franco Seco (Full-Stack) <br>
   [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eduardofranco572)
   [![LinkedIn](https://img.shields.io/badge/-LinkedIn-%230077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/eduardo-franco572/)
 
