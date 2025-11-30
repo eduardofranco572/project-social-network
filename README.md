@@ -15,24 +15,64 @@ A interface da aplicação foi construída com diversas tecnologias modernas e p
 * **Componentes Reutilizáveis:** Interface construída com a biblioteca **Shadcn/ui**, garantindo consistência visual e acessibilidade.
 
 ### Galeria de Telas
-
-| Home & Feed | Explorar |
-|:---:|:---:|
-| ![Home](./telas/home.jpeg) | ![Explorar](./telas/explorar.jpeg) |
-
-| Perfil do Usuário | Visualização de Post |
-|:---:|:---:|
-| ![Perfil](./telas/perfil.jpeg) | ![Modal Post](./telas/modal-post.jpeg) |
-
-| Pesquisa de Usuários | Pesquisa por Imagens |
-|:---:|:---:|
-| ![Pesquisa Nome](./telas/pesquisa-nome.jpeg) | ![Pesquisa Imagem](./telas/pesquisa-img.jpeg) |
-
-| Criando Conteúdo | Visualizando Status |
-|:---:|:---:|
-| ![Postando](./telas/postando.jpeg) | ![Status](./telas/status.jpeg) |
-
----
+<table>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Home & Feed</h3>
+      <div align="center">
+        <img src="./telas/home.jpeg" width="100%" alt="Home Screen">
+      </div>
+    </td>
+    <td width="50%">
+      <h3 align="center">Explorar</h3>
+      <div align="center">
+        <img src="./telas/explorar.jpeg" width="100%" alt="Explore Screen">
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Perfil do Usuário</h3>
+      <div align="center">
+        <img src="./telas/perfil.jpeg" width="100%" alt="User Profile">
+      </div>
+    </td>
+    <td width="50%">
+      <h3 align="center">Visualização de Post</h3>
+      <div align="center">
+        <img src="./telas/modal-post.jpeg" width="100%" alt="Post Modal">
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Pesquisa de Usuários</h3>
+      <div align="center">
+        <img src="./telas/pesquisa-nome.jpeg" width="100%" alt="Search User">
+      </div>
+    </td>
+    <td width="50%">
+      <h3 align="center">Pesquisa por Imagens</h3>
+      <div align="center">
+        <img src="./telas/pesquisa-img.jpeg" width="100%" alt="Search Image">
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3 align="center">Criando Conteúdo</h3>
+      <div align="center">
+        <img src="./telas/postando.jpeg" width="100%" alt="Create Post">
+      </div>
+    </td>
+    <td width="50%">
+      <h3 align="center">Visualizando Status</h3>
+      <div align="center">
+        <img src="./telas/status.jpeg" width="100%" alt="View Status">
+      </div>
+    </td>
+  </tr>
+</table>
 
 ## ⚙️ Arquitetura Técnica do Backend
 
