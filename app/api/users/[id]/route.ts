@@ -10,6 +10,7 @@ import { saveFile } from '@/src/lib/uploadUtils';
 import { publishToQueue } from '@/src/lib/rabbitmq';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+    // ... (O código GET permanece o mesmo)
     const userId = parseInt(params.id);
     try {
         const sequelize = getSequelizeInstance();
@@ -90,7 +91,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             user.USU_FOTO_PERFIL = fotoUrl;
         }
 
-        if (nome) user.USU_NOME = nome;
+        if (nome && nome.trim() !== '') {
+            if (nome !== user.USU_NOME) {
+                const existingName = await Usuario.findOne({ where: { USU_NOME: nome } });
+                
+                if (existingName) {
+                    return NextResponse.json({ message: 'Este nome de usuário já está em uso.' }, { status: 409 });
+                }
+                
+                user.USU_NOME = nome;
+            }
+        }
 
         if (novaSenha && novaSenha.trim().length > 0) {
             if (novaSenha.length < 6) {

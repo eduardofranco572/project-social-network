@@ -23,10 +23,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'A senha deve ter no mínimo 6 caracteres.' }, { status: 400 });
         }
 
-        const existingUser = await Usuario.findOne({ where: { USU_LOGIN: email } });
-
-        if (existingUser) {
+        const existingEmail = await Usuario.findOne({ where: { USU_LOGIN: email } });
+        if (existingEmail) {
             return NextResponse.json({ message: 'Este email já está em uso.' }, { status: 409 });
+        }
+        
+        const existingName = await Usuario.findOne({ where: { USU_NOME: nome } });
+        if (existingName) {
+            return NextResponse.json({ message: 'Este nome de usuário já está em uso.' }, { status: 409 });
         }
 
         const hashedPassword = await bcrypt.hash(senha, 10); 
