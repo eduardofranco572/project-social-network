@@ -2,6 +2,20 @@
 
 Uma aplicação de rede social completa e moderna, desenvolvida com foco em escalabilidade, experiência do usuário e uma arquitetura de backend robusta utilizando persistência poliglota e processamento assíncrono.
 
+<br>
+    <img src="/telas/projeto_rede_social.gif">
+<br>
+
+## 🎥 Demonstração do Projeto
+
+Confira o funcionamento completo da aplicação no vídeo abaixo:
+
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=m1rha35vZGc" target="_blank">
+    <img src="https://img.youtube.com/vi/m1rha35vZGc/0.jpg" alt="Assista ao vídeo de demonstração" width="600">
+  </a>
+</div>
+
 ## 🖥️ Visão Geral do Frontend
 
 A interface da aplicação foi construída com diversas tecnologias modernas e pensando em performance, escalabilidade e responsividade para experiência do usuário, contando com sistema de login e cadastro, tela principal que contêm um menu de navegação e o feed que terá os status e posts dos seus seguidores o visual bem baseado nas redes sociais existente o foco do projeto era treino e aprendizagem não inovação. Também contando com tela de perfil, de pesquisa por imagem ou por contas, um sistema de links de post podendo abrir o modal do post apenas com o link dele igual mento para o perfil do usuário, e um tela de explorar com diversos postes novos. O sistema conta com sistema de recomendação, uma IA para identificação imagens, e diversos recursos pensando em performance.
