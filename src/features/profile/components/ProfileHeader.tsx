@@ -1,4 +1,5 @@
 import React, { useState } from 'react'; 
+import Image from "next/image";
 import { Button } from '@/components/ui/button';
 import { Settings, UserPlus, UserCheck, Camera, Loader2, Image as ImageIcon, Bookmark } from 'lucide-react'; 
 import { UserProfile } from '../hooks/useProfile';
@@ -62,7 +63,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
             <div className="relative mb-8">
                 <div className="h-48 w-full bg-gradient-to-r from-zinc-800 to-zinc-900 relative overflow-hidden group">
                     {(banner && banner.length > 0) && (
-                        <img src={banner} alt="Capa" className="absolute inset-0 w-full h-full object-cover z-10" />
+                        <Image 
+                            src={banner} 
+                            alt="Capa" 
+                            fill 
+                            priority
+                            className="object-cover z-10" 
+                        />
                     )}
 
                     {isOwnProfile && (
@@ -82,10 +89,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profile, isOwnProf
                                 `}
                                 onClick={() => hasStatus && setIsStatusModalOpen(true)}
                             >
-                                <img 
+                                <Image 
                                     src={profile.foto} 
                                     alt={profile.nome} 
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    sizes="(max-width: 768px) 128px, 176px" 
                                 />
                                 
                                 {isOwnProfile && !hasStatus && (
