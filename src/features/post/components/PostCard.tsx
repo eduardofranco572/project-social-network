@@ -76,11 +76,13 @@ const PostMedia: React.FC<PostMediaProps> = (props) => {
     }
 
     return (
-        <img
-            src={props.media.url}
-            alt="Mídia do post"
-            className="insta-media"
-        />
+        <div className="w-full h-full relative bg-black flex items-center justify-center">
+            <img
+                src={props.media.url}
+                alt="Mídia do post"
+                className="insta-media"
+            />
+        </div>
     );
 };
 
