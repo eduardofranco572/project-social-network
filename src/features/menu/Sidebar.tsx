@@ -5,7 +5,7 @@ import { ProfileFooter } from "./components/ProfileFooter";
 
 export default function Sidebar() {
   return (
-    <aside className="w-72 h-screen flex flex-col fixed top-0 left-0 bg-background border-r z-10">
+    <aside className="hidden md:flex w-72 h-screen flex-col fixed top-0 left-0 bg-background border-r z-10">
       <SidebarHeader />
 
       <div className="flex-1 flex flex-col justify-between overflow-y-auto">

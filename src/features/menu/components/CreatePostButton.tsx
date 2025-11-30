@@ -17,8 +17,9 @@ import {
 
 import CreateStatusModal from '@/src/features/status/components/CreateStatusModal';
 import CreatePostModal from '@/src/features/post/components/CreatePostModal';
+import { cn } from '@/lib/utils';
 
-export function CreatePostButton() {
+export function CreatePostButton({ isMobile = false }: { isMobile?: boolean }) {
   const statusInputRef = useRef<HTMLInputElement>(null);
   const postInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,7 +27,6 @@ export function CreatePostButton() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
 
-  // Funções para o Modal de Status 
   const handleStatusFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles([e.target.files[0]]);
@@ -40,7 +40,6 @@ export function CreatePostButton() {
     setSelectedFiles([]);
   };
 
-  // Funções para o Modal de Post
   const handlePostFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFiles(Array.from(e.target.files));
@@ -87,36 +86,46 @@ export function CreatePostButton() {
         />
       )}
 
-      <div className="px-4 pb-4">
+      <div className={cn(isMobile ? "flex justify-center" : "px-4 pb-4")}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="w-full justify-center text-base h-10 gap-1.5">
-              <PlusSquare />
-              Criar
-            </Button>
+            {isMobile ? (
+                <Button 
+                  variant="ghost" 
+                  className="h-auto w-auto p-3 text-white hover:bg-transparent hover:text-white [&_svg]:size-[26px]"
+                >
+                  <PlusSquare />
+               </Button>
+            ) : (
+                <Button className="w-full justify-center text-base h-10 gap-1.5">
+                  <PlusSquare />
+                  Criar
+                </Button>
+            )}
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="w-[var(--radix-dropdown-menu-trigger-width)]"
-            align="start"
+            className="w-48 bg-[#1c1c1c] border-zinc-800 text-white"
+            align={isMobile ? "center" : "start"}
             side="top"
             sideOffset={8}
           >
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer focus:bg-zinc-800 focus:text-white"
               onSelect={() => postInputRef.current?.click()}
             >
-              <ImageIcon className="mr-2" />
+              <ImageIcon className="mr-2 h-4 w-4" />
               <span>Novo Post</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer focus:bg-zinc-800 focus:text-white"
               onSelect={() => statusInputRef.current?.click()}
             >
-              <MessageCircle className="mr-2" />
+              <MessageCircle className="mr-2 h-4 w-4" />
               <span>Novo Status</span>
             </DropdownMenuItem>
+
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

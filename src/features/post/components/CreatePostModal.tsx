@@ -66,6 +66,10 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
   const modalContent = (
     <section className="modal-overlay">
       <div className="modal-content-post modal-layout-wt">
+        <div className="modal-closed z-50" onClick={onClose}>
+            <IoCloseOutline size={28} />
+        </div>
+
         <div className="modal-post-gallery with-thumbnails">
           <Carousel setApi={setApi} className="w-full modal-main-carousel h-full">
             <CarouselContent className="h-full">
@@ -111,10 +115,6 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
         </div>
 
         <div className="modal-post-sidebar">
-          <div className="modal-closed" onClick={onClose}>
-            <IoCloseOutline size={28} />
-          </div>
-
           <h1 className="text-xl font-bold mb-4">Criar Novo Post</h1>
           
           <textarea
@@ -159,7 +159,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ files, onClose }) => 
           </div>
 
           <Button 
-            className='brtsaveedimg mt-auto' 
+            className='brtsaveedimg mt-6 w-full' 
             onClick={handleSubmit} 
             disabled={isLoading}
           >
