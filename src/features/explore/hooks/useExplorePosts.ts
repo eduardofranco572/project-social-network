@@ -12,8 +12,6 @@ export const useExplorePosts = (limit: number = 15) => {
     const observer = useRef<IntersectionObserver | null>(null);
 
     const fetchExplore = useCallback(async (pageNum: number) => {
-        if (isLoading) return;
-        
         setIsLoading(true);
         try {
             const response = await fetch(`/api/explore?page=${pageNum}&limit=${limit}`);

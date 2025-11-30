@@ -5,7 +5,7 @@ import Post from '@/src/models/post';
 import getSequelizeInstance from '@/src/database/database';
 import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 import { recommendationService } from '@/src/services/recommendationService';
-import { getNeo4jDriver } from '@/src/database/neo4j'; // Importar driver Neo4j
+import { getNeo4jDriver } from '@/src/database/neo4j'; 
 
 async function getUserFromToken(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value;
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         
         const page = parseInt(searchParams.get('page') || '1', 10);
         const limit = parseInt(searchParams.get('limit') || '15', 10);
+        const skip = (page - 1) * limit; 
 
         let excludedAuthorIds: number[] = [];
         
@@ -34,7 +35,6 @@ export async function GET(request: NextRequest) {
             const session = driver.session();
 
             try {
-                // IDs de quem o usuário segue
                 const result = await session.run(
                     `
                     MATCH (u:User {id: $userId})-[:FOLLOWS]->(following:User)
@@ -45,11 +45,9 @@ export async function GET(request: NextRequest) {
 
                 const followingIds = result.records.map(record => {
                     const idVal = record.get('id');
-
                     if (idVal && typeof idVal === 'object' && 'toNumber' in idVal) {
                         return idVal.toNumber();
                     }
-
                     return Number(idVal);
                 });
 
@@ -66,33 +64,30 @@ export async function GET(request: NextRequest) {
 
         let postIds: string[] = [];
 
-        // Buscar Recomendações
-        if (user && user.id) {
-            postIds = await recommendationService.getCollaborativeRecommendations(user.id, page, limit);
+        if (user && user.id && page === 1) {
+            postIds = await recommendationService.getCollaborativeRecommendations(user.id, 1, limit);
         }
 
-        // Backfill com posts aleatórios
         if (postIds.length < limit) {
-            const randomCount = limit - postIds.length;
+            const neededCount = limit - postIds.length;
             
-            const excludeIds = postIds.map((id: string) => {
+            const excludeObjectIds = postIds.map((id: string) => {
                 try { return new (require('mongoose').Types.ObjectId)(id) } catch { return null }
             }).filter(Boolean);
 
-            const randomPosts = await Post.aggregate([
-                { 
-                    $match: { 
-                        _id: { $nin: excludeIds },
-                        likes: { $ne: user?.id },
-                        authorId: { $nin: excludedAuthorIds } // Remove posts de seguidos/eu
-                    } 
-                },
-                { $sample: { size: randomCount } },
-                { $project: { _id: 1 } }
-            ]);
+            const globalPosts = await Post.find({
+                _id: { $nin: excludeObjectIds },
+                authorId: { $nin: excludedAuthorIds },
+                likes: { $ne: user?.id } 
+            })
+            .sort({ createdAt: -1 }) 
+            .skip(skip) 
+            .limit(neededCount) 
+            .select('_id')
+            .lean();
 
-            const randomIds = randomPosts.map((p: any) => p._id.toString());
-            postIds = [...postIds, ...randomIds];
+            const globalIds = globalPosts.map((p: any) => p._id.toString());
+            postIds = [...postIds, ...globalIds];
         }
 
         if (postIds.length === 0) {
@@ -103,8 +98,7 @@ export async function GET(request: NextRequest) {
         }
 
         const posts = await Post.find({ 
-            _id: { $in: postIds },
-            authorId: { $nin: excludedAuthorIds }
+            _id: { $in: postIds }
         }).lean();
 
         const authorIds = Array.from(new Set(posts.map(post => post.authorId)));
@@ -140,7 +134,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ 
             posts: populatedPosts,
-            hasMore: populatedPosts.length > 0
+            hasMore: populatedPosts.length > 0 
         }, { status: 200 });
 
     } catch (error) {
