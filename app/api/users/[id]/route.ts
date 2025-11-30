@@ -102,17 +102,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         }
 
         await user.save();
-        
-        await publishToQueue('realtime_events', {
-            event: 'user_updated',
-            roomId: userId, 
-            data: {
-                id: user.USU_ID,
+
+        try {
+            await publishToQueue('user_data_sync', {
+                userId: user.USU_ID,
                 nome: user.USU_NOME,
-                foto: user.USU_FOTO_PERFIL,
-                banner: user.USU_BANNER
-            }
-        });
+                foto: user.USU_FOTO_PERFIL
+            });
+        } catch (queueError) {
+            console.error("Erro ao enviar para fila de sync:", queueError);
+        }
+        
+        try {
+            await publishToQueue('realtime_events', {
+                event: 'user_updated',
+                roomId: userId, 
+                data: {
+                    id: user.USU_ID,
+                    nome: user.USU_NOME,
+                    foto: user.USU_FOTO_PERFIL,
+                    banner: user.USU_BANNER
+                }
+            });
+        } catch (queueError) {
+            console.error("Erro ao enviar para fila de sync:", queueError);
+        }
 
         return NextResponse.json({ 
             message: 'Perfil atualizado com sucesso',

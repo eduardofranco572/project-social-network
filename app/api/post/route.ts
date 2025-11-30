@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
             media: mediaItems,
             description: description || '',
             authorId: user.id,
+            authorName: user.nome, 
+            authorPhoto: user.foto || '/img/iconePadrao.svg',
             autoTags: []
         });
 
@@ -209,41 +211,14 @@ export async function GET(request: NextRequest) {
 
         const totalPosts = await Post.countDocuments(query);
 
-        if (!posts.length) {
-            return NextResponse.json({
-                posts: [],
-                page,
-                hasMore: false,
-            }, { status: 200 });
-        }
-
-        const authorIds = Array.from(new Set(posts.map(post => post.authorId)));
-
-        const sequelize = getSequelizeInstance();
-        initUsuarioModel(sequelize);
-        
-        const authors = await Usuario.findAll({
-            where: { USU_ID: authorIds },
-            attributes: ['USU_ID', 'USU_NOME', 'USU_FOTO_PERFIL']
-        });
-
-        const authorMap = new Map(authors.map(author => [
-            author.USU_ID, 
-            {
-                id: author.USU_ID,
-                nome: author.USU_NOME,
-                fotoPerfil: author.USU_FOTO_PERFIL || '/img/iconePadrao.svg'
-            }
-        ]));
-
-        const populatedPosts = posts.map(post => ({
+        const populatedPosts = posts.map((post: any) => ({
             ...post,
             _id: post._id.toString(),
             likes: (post.likes || []).map((id: any) => parseInt(id, 10)),
-            author: authorMap.get(post.authorId) || {
+            author: {
                 id: post.authorId,
-                nome: 'Usuário Desconhecido',
-                fotoPerfil: '/img/iconePadrao.svg'
+                nome: post.authorName,
+                fotoPerfil: post.authorPhoto
             }
         }));
 

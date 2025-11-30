@@ -99,7 +99,9 @@ export async function POST(request: NextRequest) {
             postId,
             userId: user.id,
             text,
-            parentId: parentId || null 
+            parentId: parentId || null,
+            userName: user.nome,
+            userPhoto: user.foto || '/img/iconePadrao.svg'
         });
 
         const commentWithUser = {

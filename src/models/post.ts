@@ -9,6 +9,8 @@ interface IPost {
     media: IMediaItem[];   
     description?: string;
     authorId: number;
+    authorName: string;
+    authorPhoto: string;
     likes: number[];
     savedBy: number[];
     autoTags: string[];
@@ -23,12 +25,44 @@ const PostSchema = new Schema<IPost>({
         }
     ],
 
-    description: { type: String },
-    authorId: { type: Number, required: true },
-    likes: { type: [Number], default: [] },
-    savedBy: { type: [Number], default: [] },
-    autoTags: { type: [String], default: [] },
-    createdAt: { type: Date, default: Date.now },
+    description: { 
+        type: String 
+    },
+
+    authorId: { 
+        type: Number, 
+        required: true 
+    },
+
+    authorName: { 
+        type: String, 
+        required: true 
+    },
+
+    authorPhoto: { 
+        type: String, 
+        default: '/img/iconePadrao.svg' 
+    },
+
+    likes: { 
+        type: [Number], 
+        default: [] 
+    },
+
+    savedBy: { 
+        type: [Number], 
+        default: [] 
+    },
+
+    autoTags: { 
+        type: [String], 
+        default: [] 
+    },
+
+    createdAt: { 
+        type: Date, 
+        default: Date.now 
+    },
 });
 
 PostSchema.index({ description: 'text', autoTags: 'text' });
