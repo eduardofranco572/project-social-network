@@ -1,8 +1,10 @@
-import mongoose, { Schema, model, models, Model } from 'mongoose';
+import mongoose, { Schema, model, Model } from 'mongoose';
 
 interface IComment {
     postId: string;
     userId: number;
+    userName: string;
+    userPhoto: string;
     text: string;
     parentId?: string | null;
     createdAt: Date;
@@ -18,6 +20,16 @@ const CommentSchema = new Schema<IComment>({
     userId: { 
         type: Number, 
         required: true 
+    },
+
+    userName: { 
+        type: String, 
+        required: true 
+    },
+
+    userPhoto: { 
+        type: String, 
+        default: '/img/iconePadrao.svg' 
     },
 
     text: { 
@@ -37,6 +49,6 @@ const CommentSchema = new Schema<IComment>({
     },
 });
 
-const Comment = (models.Comment as Model<IComment>) || model<IComment>('Comment', CommentSchema);
+const Comment = (mongoose.models.Comment as Model<IComment>) || model<IComment>('Comment', CommentSchema);
 
 export default Comment;
