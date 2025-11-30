@@ -16,7 +16,7 @@ interface ProfilePageContentProps {
 
 export const ProfilePageContent: React.FC<ProfilePageContentProps> = ({ profileId }) => {
     const { user: loggedInUser } = useCurrentUser();
-    const { profile, posts, loadingProfile, loadingPosts, hasMore, loadMorePosts } = useProfile(profileId);
+    const { profile, posts, loadingProfile, loadingPosts, hasMore, lastPostElementRef } = useProfile(profileId);
     const [selectedPost, setSelectedPost] = useState<PostWithAuthor | null>(null);
 
     if (loadingProfile) {
@@ -45,7 +45,7 @@ export const ProfilePageContent: React.FC<ProfilePageContentProps> = ({ profileI
                 posts={posts} 
                 hasMore={hasMore} 
                 loadingPosts={loadingPosts} 
-                onLoadMore={loadMorePosts}
+                lastPostElementRef={lastPostElementRef}
                 onPostClick={setSelectedPost}
             />
 

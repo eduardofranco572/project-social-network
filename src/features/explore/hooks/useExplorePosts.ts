@@ -45,6 +45,7 @@ export const useExplorePosts = (limit: number = 15) => {
 
     const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
         if (isLoading) return;
+        
         if (observer.current) observer.current.disconnect();
 
         observer.current = new IntersectionObserver(entries => {

@@ -7,10 +7,14 @@ import Usuario, { initUsuarioModel } from '@/src/models/usuario';
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        let query = searchParams.get('q'); 
+        let query = searchParams.get('q');
+        
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '15');
+        const skip = (page - 1) * limit;
 
         if (!query || query.trim().length === 0) {
-            return NextResponse.json([], { status: 200 });
+            return NextResponse.json({ posts: [], hasMore: false }, { status: 200 });
         }
 
         await connectMongo();
@@ -36,20 +40,24 @@ export async function GET(request: NextRequest) {
             query = `${query} ${translations[lowerQuery]}`;
         }
 
-        const posts = await Post.find(
-            { $text: { $search: query } },
-            { score: { $meta: "textScore" } }
-        )
-        .sort({ score: { $meta: "textScore" } })
-        .limit(20)
-        .lean();
+        const [posts, totalPosts] = await Promise.all([
+            Post.find(
+                { $text: { $search: query } },
+                { score: { $meta: "textScore" } }
+            )
+            .sort({ score: { $meta: "textScore" } })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+            
+            Post.countDocuments({ $text: { $search: query } })
+        ]);
 
         if (!posts.length) {
-            return NextResponse.json([], { status: 200 });
+            return NextResponse.json({ posts: [], hasMore: false }, { status: 200 });
         }
 
         const authorIds = Array.from(new Set(posts.map((post: any) => post.authorId)));
-
         const sequelize = getSequelizeInstance();
         initUsuarioModel(sequelize);
         
@@ -81,7 +89,10 @@ export async function GET(request: NextRequest) {
             }
         }));
 
-        return NextResponse.json(formattedPosts, { status: 200 });
+        return NextResponse.json({
+            posts: formattedPosts,
+            hasMore: skip + posts.length < totalPosts
+        }, { status: 200 });
 
     } catch (error) {
         console.error("Erro na busca de posts:", error);
